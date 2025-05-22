@@ -7,33 +7,35 @@ import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
+const initialFormData = {
+  mainContact: {
+    firstName: "",
+    lastName: "",
+    address: "",
+    town: "",
+    email: "",
+  },
+  numberOfPeople: 1,
+  additionalPeople: [],
+  pass2Days: {
+    selected: false,
+    daysSelection: "", // "jeudiVendredi", "vendrediSamedi", "jeudiSamedi"
+  },
+  reservations: [
+    { day: "Jeudi - 9 octobre 2025", option: "", mealOption: "" },
+    { day: "Vendredi - 10 octobre 2025", option: "", mealOption: "" },
+    { day: "Samedi - 11 octobre 2025", option: "", mealOption: "" },
+  ],
+};
+
 export default function Home() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    mainContact: {
-      firstName: "",
-      lastName: "",
-      address: "",
-      town: "",
-      email: "",
-    },
-    numberOfPeople: 1,
-    additionalPeople: [],
-    pass2Days: {
-      selected: false,
-      daysSelection: "", // "jeudiVendredi", "vendrediSamedi", "jeudiSamedi"
-    },
-    reservations: [
-      { day: "Jeudi - 9 octobre 2025", option: "", mealOption: "" },
-      { day: "Vendredi - 10 octobre 2025", option: "", mealOption: "" },
-      { day: "Samedi - 11 octobre 2025", option: "", mealOption: "" },
-    ],
-  });
+  const [formData, setFormData] = useState(initialFormData); // Utiliser initialFormData
 
   const [showQRCode, setShowQRCode] = useState(false);
   const qrRef = useRef(null);
-
   const [totalPrice, setTotalPrice] = useState(0);
+  const [isReservationConfirmed, setIsReservationConfirmed] = useState(false); // Nouvel état
 
   const handleMainContactChange = (e) => {
     const { name, value } = e.target;
@@ -251,7 +253,6 @@ EPD`;
 
 // Nouvelle fonction pour envoyer les données à l'API
 const confirmReservation = async () => {
-  // Afficher un toast de chargement
   const loadingToastId = toast.loading("Traitement de votre réservation...", {
     position: "top-center",
     theme: "dark",
@@ -259,13 +260,11 @@ const confirmReservation = async () => {
   });
   
   try {
-    // Données à envoyer à l'API
     const apiData = {
       ...formData,
       totalPrice
     };
     
-    // Appel à l'API
     const response = await fetch('/api', {
       method: 'POST',
       headers: {
@@ -275,12 +274,9 @@ const confirmReservation = async () => {
     });
     
     const data = await response.json();
-    
-    // Fermer le toast de chargement
     toast.dismiss(loadingToastId);
     
     if (!response.ok) {
-      // Gestion des erreurs
       if (data.errors && data.errors.length > 0) {
         toast.error(
           <div>
@@ -299,41 +295,27 @@ const confirmReservation = async () => {
           }
         );
       } else {
-        toast.error(data.message || "Une erreur s'est produite", {
-          position: "top-center",
-          autoClose: 5000,
-          theme: "dark",
-          toastClassName: "bg-[#222] text-white",
-        });
+        toast.error(data.message || "Une erreur s'est produite", { /* ... toast options ... */ });
       }
       return;
     }
     
-    // Succès
     toast.success("Réservation confirmée avec succès!", {
       position: "top-center",
-      autoClose: 5000,
+      autoClose: 3000, // Réduire un peu le temps d'affichage
       theme: "dark",
       toastClassName: "bg-[#222] text-white",
     });
-    
-    // Fermer la modal QR après confirmation
-    setShowQRCode(false);
-    
-    // Rediriger ou afficher un message de succès
-    // router.push('/success');
+
+    // Actions immédiates après la confirmation et l'affichage du toast
+    setFormData(initialFormData); 
+    setTotalPrice(0); 
+    setIsReservationConfirmed(true); 
+    setShowQRCode(false); // Fermer la modal QR
     
   } catch (error) {
-    // Fermer le toast de chargement
     toast.dismiss(loadingToastId);
-    
-    // Afficher une erreur
-    toast.error("Une erreur s'est produite lors de la connexion au serveur", {
-      position: "top-center",
-      autoClose: 5000,
-      theme: "dark",
-      toastClassName: "bg-[#222] text-white",
-    });
+    toast.error("Une erreur s'est produite lors de la connexion au serveur", { /* ... toast options ... */ });
     console.error("Erreur API:", error);
   }
 };
@@ -418,6 +400,11 @@ const validateForm = () => {
     }
   };
 
+  const handleNewReservation = () => {
+    setIsReservationConfirmed(false); // Cacher le message et réafficher le formulaire
+    // Le formulaire est déjà réinitialisé, donc pas besoin de setFormData ici
+  };
+
   return (
     <ClickSpark
       sparkColor="#444"
@@ -427,173 +414,119 @@ const validateForm = () => {
       duration={400}
     >
       <div className="min-h-screen bg-black text-gray-300 py-12 pb-48">
-        {/* Ajouter le conteneur de toast */}
         <ToastContainer />
         <div className="max-w-3xl mx-auto px-4">
           <h1 className="text-4xl font-bold text-center mb-4 text-white">Réservation</h1>
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
           
-          <form onSubmit={handleSubmit} className="bg-[#111] rounded-2xl p-8 shadow-2xl border border-[#222]">
-            <div className="mb-10">
-              <h2 className="text-2xl font-bold mb-6 text-white">Contact principal</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                
-                
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    value={formData.mainContact.firstName}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.mainContact.lastName}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Adresse</label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.mainContact.address}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Ville</label>
-                  <input
-                    type="text"
-                    name="town"
-                    value={formData.mainContact.town}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
-                
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.mainContact.email}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="mb-10">
-              <label className="block text-sm font-medium mb-2 text-gray-400">Nombre de personnes (max 4)</label>
-              <select
-                name="numberOfPeople"
-                value={formData.numberOfPeople}
-                onChange={(e) => updateNumberOfPeople(e.target.value)}
-                className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                hover:border-[#444] transition-all duration-200 appearance-none"
-                style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
-                         backgroundPosition: `right 0.5rem center`,
-                         backgroundRepeat: `no-repeat`, 
-                         backgroundSize: `1.5em 1.5em`,
-                         paddingRight: `2.5rem` }}
+          {isReservationConfirmed ? (
+            <div className="bg-[#111] rounded-2xl p-8 shadow-2xl border border-[#222] text-center">
+              <h2 className="text-3xl font-bold mb-6 text-green-500">Merci pour votre réservation !</h2>
+              <p className="text-lg mb-4 text-white">
+                Votre demande a bien été enregistrée.
+              </p>
+              <p className="text-lg mb-6 text-white">
+                Veuillez vérifier votre boîte de réception (et votre dossier de courriers indésirables/spam) pour l&apos;e-mail de confirmation.
+              </p>
+              <p className="text-sm text-gray-500 mb-8">
+                (Pensez à vérifier vos spams !)
+              </p>
+              <button
+                onClick={handleNewReservation}
+                className="bg-violet-600 hover:bg-violet-700 text-white py-3 px-6 rounded-xl font-medium 
+                transition duration-300 border border-violet-700 hover:border-violet-800
+                focus:outline-none focus:border-violet-900 focus:ring-2 focus:ring-violet-500
+                relative overflow-hidden group min-w-[200px] cursor-pointer"
               >
-                {[1, 2, 3, 4].map((num) => (
-                  <option key={num} value={num}>{num}</option>
-                ))}
-              </select>
+                Faire une nouvelle réservation
+              </button>
             </div>
-            
-            {formData.numberOfPeople > 1 && (
-              <div className="mb-10">
-                <h2 className="text-xl font-bold mb-6 mt-28 text-white">Personnes supplémentaires</h2>
-                <div className="space-y-6">
-                  {Array.from({ length: formData.numberOfPeople - 1 }).map((_, index) => (
-                    <div key={index} className="bg-[#0a0a0a] p-5 rounded-xl border border-[#222]">
-                      <h3 className="text-lg font-medium mb-4 text-white">Personne {index + 2}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
-                          <input
-                            type="text"
-                            value={formData.additionalPeople[index]?.firstName || ""}
-                            onChange={(e) => handleAdditionalPersonChange(index, "firstName", e.target.value)}
-                            required
-                            className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                            focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                            hover:border-[#444] transition-all duration-200"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
-                          <input
-                            type="text"
-                            value={formData.additionalPeople[index]?.lastName || ""}
-                            onChange={(e) => handleAdditionalPersonChange(index, "lastName", e.target.value)}
-                            required
-                            className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                            focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                            hover:border-[#444] transition-all duration-200"
-                          />
-                        </div>
-                      </div>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} className="bg-[#111] rounded-2xl p-8 shadow-2xl border border-[#222]">
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold mb-6 text-white">Contact principal</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    
+                    
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
+                      <input
+                        type="text"
+                        name="firstName"
+                        value={formData.mainContact.firstName}
+                        onChange={handleMainContactChange}
+                        required
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200"
+                      />
                     </div>
-                  ))}
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.mainContact.lastName}
+                        onChange={handleMainContactChange}
+                        required
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Adresse</label>
+                      <input
+                        type="text"
+                        name="address"
+                        value={formData.mainContact.address}
+                        onChange={handleMainContactChange}
+                        required
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Ville</label>
+                      <input
+                        type="text"
+                        name="town"
+                        value={formData.mainContact.town}
+                        onChange={handleMainContactChange}
+                        required
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200"
+                      />
+                    </div>
+                    
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Email</label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.mainContact.email}
+                        onChange={handleMainContactChange}
+                        required
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            )}
-            
-            {/* Section Pass 2 jours */}
-            <h2 className="text-xl font-bold mb-6 mt-28 text-white">Options de réservations</h2>
-            <div className="mb-10 bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
-              <div className="flex items-center mb-4">
-                <input
-                  type="checkbox"
-                  id="pass2days"
-                  checked={formData.pass2Days.selected}
-                  onChange={(e) => togglePass2Days(e.target.checked)}
-                  className="w-5 h-5 rounded accent-violet-500 bg-black border-[#333]"
-                />
-                <label htmlFor="pass2days" className="ml-3 text-xl font-medium text-white">
-                Pass 2 jours (comprend 2 jours et 2 nuits - 90 CHF par personne)
-                </label>
-              </div>
-              
-              {formData.pass2Days.selected && (
-                <div className="mt-4">
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Choisissez vos jours</label>
+                
+                <div className="mb-10">
+                  <label className="block text-sm font-medium mb-2 text-gray-400">Nombre de personnes (max 4)</label>
                   <select
-                    value={formData.pass2Days.daysSelection}
-                    onChange={(e) => handleDaysSelectionChange(e.target.value)}
-                    required={formData.pass2Days.selected}
+                    name="numberOfPeople"
+                    value={formData.numberOfPeople}
+                    onChange={(e) => updateNumberOfPeople(e.target.value)}
                     className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
                     focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
                     hover:border-[#444] transition-all duration-200 appearance-none"
@@ -603,102 +536,181 @@ const validateForm = () => {
                              backgroundSize: `1.5em 1.5em`,
                              paddingRight: `2.5rem` }}
                   >
-                    <option value="">Sélectionnez vos jours</option>
-                    <option value="jeudiVendredi">Jeudi et Vendredi</option>
-                    <option value="vendrediSamedi">Vendredi et Samedi</option>
-                    <option value="jeudiSamedi">Jeudi et Samedi</option>
+                    {[1, 2, 3, 4].map((num) => (
+                      <option key={num} value={num}>{num}</option>
+                    ))}
                   </select>
                 </div>
-              )}
-            </div>
-            
-            {/* N'afficher les options de réservation que si le Pass 2 jours n'est pas sélectionné ou si des jours sont sélectionnés */}
-            {(!formData.pass2Days.selected || 
-             (formData.pass2Days.selected && formData.pass2Days.daysSelection)) && (
-              <div className="space-y-8 mb-20">
-                {formData.reservations.map((reservation, index) => {
-                  // N'afficher que les jours correspondant à la sélection
-                  if (!daysToDisplay().includes(index)) return null;
-                  
-                  return (
-                    <div key={index} className="bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
-                      <h3 className="text-xl font-medium mb-6 border-b border-[#333] pb-3 text-white">{reservation.day}</h3>
-                      
-                      <div className="space-y-6">
-                        {!formData.pass2Days.selected && (
-                          <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-400">Option</label>
-                            <select
-                              value={reservation.option}
-                              onChange={(e) => handleReservationChange(index, "option", e.target.value)}
-                              className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                              focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                              hover:border-[#444] transition-all duration-200 appearance-none"
-                              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
-                                     backgroundPosition: `right 0.5rem center`,
-                                     backgroundRepeat: `no-repeat`, 
-                                     backgroundSize: `1.5em 1.5em`,
-                                     paddingRight: `2.5rem` }}
-                            >
-                              <option value="">Ne vient pas</option>
-                              <option value="jourEtSoir">Journée et soirée (45 CHF)</option>
-                              <option value="jourSoirEtNuit">Journée, soirée et nuit (55 CHF)</option>
-                            </select>
+                
+                {formData.numberOfPeople > 1 && (
+                  <div className="mb-10">
+                    <h2 className="text-xl font-bold mb-6 mt-28 text-white">Personnes supplémentaires</h2>
+                    <div className="space-y-6">
+                      {Array.from({ length: formData.numberOfPeople - 1 }).map((_, index) => (
+                        <div key={index} className="bg-[#0a0a0a] p-5 rounded-xl border border-[#222]">
+                          <h3 className="text-lg font-medium mb-4 text-white">Personne {index + 2}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
+                              <input
+                                type="text"
+                                value={formData.additionalPeople[index]?.firstName || ""}
+                                onChange={(e) => handleAdditionalPersonChange(index, "firstName", e.target.value)}
+                                required
+                                className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                                focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                                hover:border-[#444] transition-all duration-200"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
+                              <input
+                                type="text"
+                                value={formData.additionalPeople[index]?.lastName || ""}
+                                onChange={(e) => handleAdditionalPersonChange(index, "lastName", e.target.value)}
+                                required
+                                className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                                focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                                hover:border-[#444] transition-all duration-200"
+                              />
+                            </div>
                           </div>
-                        )}
-                        
-                        {(formData.pass2Days.selected || reservation.option) && (
-                          <div>
-                            <label className="block text-sm font-medium mb-2 text-gray-400">Option de repas</label>
-                            <select
-                              value={reservation.mealOption}
-                              onChange={(e) => handleReservationChange(index, "mealOption", e.target.value)}
-                              className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                              focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                              hover:border-[#444] transition-all duration-200 appearance-none"
-                              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
-                                     backgroundPosition: `right 0.5rem center`,
-                                     backgroundRepeat: `no-repeat`, 
-                                     backgroundSize: `1.5em 1.5em`,
-                                     paddingRight: `2.5rem` }}
-                            >
-                              <option value="">Aucun</option>
-                              <option value="midiEtSoir">Midi et soir (compris)</option>
-                              <option value="soirSeulement">Soir uniquement (compris)</option>
-                            </select>
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </form>
-          
-          {/* Barre fixe en bas de l'écran */}
-          <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] shadow-[0_-4px_20px_rgba(0,0,0,0.3)] border-t border-[#222] z-50">
-            <div className="max-w-3xl mx-auto px-4">
-              <div className="flex items-center justify-between py-4">
-                <div className="flex flex-col">
-                  <h3 className="text-base font-medium text-gray-400">Montant total:</h3>
-                  <span className="text-2xl font-bold text-white">{totalPrice} CHF</span>
+                  </div>
+                )}
+                
+                {/* Section Pass 2 jours */}
+                <h2 className="text-xl font-bold mb-6 mt-28 text-white">Options de réservations</h2>
+                <div className="mb-10 bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
+                  <div className="flex items-center mb-4">
+                    <input
+                      type="checkbox"
+                      id="pass2days"
+                      checked={formData.pass2Days.selected}
+                      onChange={(e) => togglePass2Days(e.target.checked)}
+                      className="w-5 h-5 rounded accent-violet-500 bg-black border-[#333]"
+                    />
+                    <label htmlFor="pass2days" className="ml-3 text-xl font-medium text-white">
+                    Pass 2 jours (comprend 2 jours et 2 nuits - 90 CHF par personne)
+                    </label>
+                  </div>
+                  
+                  {formData.pass2Days.selected && (
+                    <div className="mt-4">
+                      <label className="block text-sm font-medium mb-2 text-gray-400">Choisissez vos jours</label>
+                      <select
+                        value={formData.pass2Days.daysSelection}
+                        onChange={(e) => handleDaysSelectionChange(e.target.value)}
+                        required={formData.pass2Days.selected}
+                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                        hover:border-[#444] transition-all duration-200 appearance-none"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                                 backgroundPosition: `right 0.5rem center`,
+                                 backgroundRepeat: `no-repeat`, 
+                                 backgroundSize: `1.5em 1.5em`,
+                                 paddingRight: `2.5rem` }}
+                      >
+                        <option value="">Sélectionnez vos jours</option>
+                        <option value="jeudiVendredi">Jeudi et Vendredi</option>
+                        <option value="vendrediSamedi">Vendredi et Samedi</option>
+                        <option value="jeudiSamedi">Jeudi et Samedi</option>
+                      </select>
+                    </div>
+                  )}
                 </div>
                 
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="bg-[#1a1a1a] hover:bg-[#222] text-white py-3 px-6 rounded-xl font-medium 
-                  transition duration-300 border border-[#333] hover:border-[#555]
-                  focus:outline-none focus:border-[#777] focus:ring-2 focus:ring-[#444]
-                  relative overflow-hidden group min-w-[160px] cursor-pointer"
-                >
-                  <span className="relative z-10">Réserver</span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-[#222] to-[#333] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-                </button>
+                {/* N'afficher les options de réservation que si le Pass 2 jours n'est pas sélectionné ou si des jours sont sélectionnés */}
+                {(!formData.pass2Days.selected || 
+                 (formData.pass2Days.selected && formData.pass2Days.daysSelection)) && (
+                  <div className="space-y-8 mb-20">
+                    {formData.reservations.map((reservation, index) => {
+                      // N'afficher que les jours correspondant à la sélection
+                      if (!daysToDisplay().includes(index)) return null;
+                      
+                      return (
+                        <div key={index} className="bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
+                          <h3 className="text-xl font-medium mb-6 border-b border-[#333] pb-3 text-white">{reservation.day}</h3>
+                          
+                          <div className="space-y-6">
+                            {!formData.pass2Days.selected && (
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-400">Option</label>
+                                <select
+                                  value={reservation.option}
+                                  onChange={(e) => handleReservationChange(index, "option", e.target.value)}
+                                  className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                                  focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                                  hover:border-[#444] transition-all duration-200 appearance-none"
+                                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                                         backgroundPosition: `right 0.5rem center`,
+                                         backgroundRepeat: `no-repeat`, 
+                                         backgroundSize: `1.5em 1.5em`,
+                                         paddingRight: `2.5rem` }}
+                                >
+                                  <option value="">Ne vient pas</option>
+                                  <option value="jourEtSoir">Journée et soirée (45 CHF)</option>
+                                  <option value="jourSoirEtNuit">Journée, soirée et nuit (55 CHF)</option>
+                                </select>
+                              </div>
+                            )}
+                            
+                            {(formData.pass2Days.selected || reservation.option) && (
+                              <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-400">Option de repas</label>
+                                <select
+                                  value={reservation.mealOption}
+                                  onChange={(e) => handleReservationChange(index, "mealOption", e.target.value)}
+                                  className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                                  focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                                  hover:border-[#444] transition-all duration-200 appearance-none"
+                                  style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                                         backgroundPosition: `right 0.5rem center`,
+                                         backgroundRepeat: `no-repeat`, 
+                                         backgroundSize: `1.5em 1.5em`,
+                                         paddingRight: `2.5rem` }}
+                                >
+                                  <option value="">Aucun</option>
+                                  <option value="midiEtSoir">Midi et soir (compris)</option>
+                                  <option value="soirSeulement">Soir uniquement (compris)</option>
+                                </select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </form>
+              
+              {/* Barre fixe en bas de l'écran */}
+              <div className="fixed bottom-0 left-0 right-0 bg-[#0a0a0a] shadow-[0_-4px_20px_rgba(0,0,0,0.3)] border-t border-[#222] z-50">
+                <div className="max-w-3xl mx-auto px-4">
+                  <div className="flex items-center justify-between py-4">
+                    <div className="flex flex-col">
+                      <h3 className="text-base font-medium text-gray-400">Montant total:</h3>
+                      <span className="text-2xl font-bold text-white">{totalPrice} CHF</span>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={handleSubmit}
+                      className="bg-[#1a1a1a] hover:bg-[#222] text-white py-3 px-6 rounded-xl font-medium 
+                      transition duration-300 border border-[#333] hover:border-[#555]
+                      focus:outline-none focus:border-[#777] focus:ring-2 focus:ring-[#444]
+                      relative overflow-hidden group min-w-[160px] cursor-pointer"
+                    >
+                      <span className="relative z-10">Réserver</span>
+                      <span className="absolute inset-0 bg-gradient-to-r from-[#222] to-[#333] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </>
+          )}
         </div>
         {/* Modal QR Code */}
         {showQRCode && (
@@ -774,7 +786,7 @@ EPD`}
             className="flex items-center gap-2 hover:underline hover:underline-offset-4"
             href="https://thbo.ch/"
             target="_blank"
-            rel=""
+            rel="noopener noreferrer"
             >
             <Image
                 aria-hidden

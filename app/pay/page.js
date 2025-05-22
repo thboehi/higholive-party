@@ -128,7 +128,7 @@ EPD`;
         return { text: 'Annulée', className: 'text-red-500 font-bold' };
       case 'pending':
       default:
-        return { text: 'En attente de paiement', className: 'text-yellow-500 font-bold' };
+        return { text: 'En attente de paiement (Cela peut prendre plusieurs jours)', className: 'text-yellow-500 font-bold' };
     }
   };
 
