@@ -9,48 +9,64 @@ import ClickSpark from "../components/ClickSpark";
 // Component to handle the logic using searchParams and API data
 function PaymentDetails() {
   const searchParams = useSearchParams();
-  const [paymentData, setPaymentData] = useState(null); // Initialisé à null
+  const [paymentData, setPaymentData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const qrRef = useRef(null);
 
   useEffect(() => {
-    const reservationId = searchParams.get('reservationId');
+    let idToFetch = searchParams.get('reservationId');
+    const localStorageKey = 'lastReservationId';
 
-    if (!reservationId) {
-      setError("L'identifiant de la réservation est manquant dans l'URL.");
+    if (idToFetch) {
+      // Si l'ID est dans l'URL, on l'enregistre dans localStorage
+      try {
+        localStorage.setItem(localStorageKey, idToFetch);
+      } catch (e) {
+        console.warn("Impossible d'accéder au localStorage:", e);
+      }
+    } else {
+      // Si l'ID n'est pas dans l'URL, on essaie de le récupérer depuis localStorage
+      try {
+        idToFetch = localStorage.getItem(localStorageKey);
+      } catch (e) {
+        console.warn("Impossible d'accéder au localStorage:", e);
+      }
+    }
+
+    if (!idToFetch) {
+      setError("L'identifiant de la réservation est manquant.");
       setIsLoading(false);
       return;
     }
 
-    const fetchReservationData = async () => {
+    const fetchReservationData = async (currentId) => {
       try {
-        const response = await fetch(`/api/${reservationId}`);
+        setIsLoading(true); // Remettre isLoading à true au début du fetch
+        const response = await fetch(`/api/${currentId}`);
         const data = await response.json();
 
         if (!response.ok || !data.success) {
           setError(data.message || "Impossible de récupérer les détails de la réservation.");
-          setIsLoading(false);
-          return;
+          setPaymentData(null); // S'assurer que les anciennes données ne sont pas affichées en cas d'erreur
+        } else if (data.data.totalPrice === undefined || data.data.mainContact?.firstName === undefined || data.data.mainContact?.lastName === undefined) {
+          setError("Les données de la réservation sont incomplètes pour générer le paiement.");
+          setPaymentData(null);
+        } else {
+          setPaymentData(data.data);
+          setError(null); // Effacer les erreurs précédentes en cas de succès
         }
-        
-        if (data.data.totalPrice === undefined || data.data.mainContact?.firstName === undefined || data.data.mainContact?.lastName === undefined) {
-            setError("Les données de la réservation sont incomplètes pour générer le paiement.");
-            setIsLoading(false);
-            return;
-        }
-
-        setPaymentData(data.data);
       } catch (err) {
         console.error("Erreur lors de la récupération de la réservation:", err);
         setError("Une erreur s'est produite lors de la communication avec le serveur.");
+        setPaymentData(null);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchReservationData();
-  }, [searchParams]);
+    fetchReservationData(idToFetch);
+  }, [searchParams]); // searchParams reste la dépendance pour réagir aux changements d'URL
 
   const generateQRContent = () => {
     if (!paymentData || !paymentData.totalPrice || !paymentData.mainContact?.firstName || !paymentData.mainContact?.lastName) {
