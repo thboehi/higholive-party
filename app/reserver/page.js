@@ -5,6 +5,7 @@ import Image from "next/image";
 import ClickSpark from "../components/ClickSpark";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from 'react-toastify';
+import Link from "next/link";
 import 'react-toastify/dist/ReactToastify.css';
 
 const initialFormData = {
@@ -416,6 +417,16 @@ const validateForm = () => {
       <div className="min-h-screen bg-black text-gray-300 py-12 pb-48">
         <ToastContainer />
         <div className="max-w-3xl mx-auto px-4">
+          <div className="mb-8">
+            <Link href="/" legacyBehavior>
+              <a className="inline-flex items-center text-gray-400 hover:text-white transition-colors duration-200 group">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Retour à l'accueil
+              </a>
+            </Link>
+          </div>
           <h1 className="text-4xl font-bold text-center mb-4 text-white">Réservation</h1>
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
           
