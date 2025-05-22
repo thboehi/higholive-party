@@ -1,5 +1,6 @@
 "use client"
-import { useState } from "react";
+import { QRCodeSVG } from 'qrcode.react';
+import { useState, useRef } from "react";
 import Image from "next/image";
 import ClickSpark from "../components/ClickSpark";
 import { useRouter } from "next/navigation";
@@ -11,6 +12,7 @@ export default function Home() {
       firstName: "",
       lastName: "",
       address: "",
+      town: "",
       email: "",
     },
     numberOfPeople: 1,
@@ -21,6 +23,9 @@ export default function Home() {
       { day: "Samedi - 11 octobre 2025", option: "", mealOption: "" },
     ],
   });
+
+  const [showQRCode, setShowQRCode] = useState(false);
+  const qrRef = useRef(null);
 
   const [totalPrice, setTotalPrice] = useState(0);
 
@@ -120,16 +125,51 @@ export default function Home() {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Formatage du prix avec 2 décimales et un point
+    const formattedPrice = totalPrice.toFixed(2);
+    
+    // Création du contenu du QR code avec le format exact demandé
+    const qrContent = `SPC
+0200
+1
+CH5400266266100331M2C
+S
+Böhi Lucien
+Nouvelle Avenue
+34
+1907
+Saxon
+CH
+
+
+
+
+
+
+
+${formattedPrice}
+CHF
+
+
+
+
+
+
+
+NON
+
+Soirée 30 ans ${formData.mainContact.firstName} ${formData.mainContact.lastName}
+EPD`;
+    
     // Stockage des données pour la page résumé
     localStorage.setItem("reservationData", JSON.stringify({
       ...formData,
-      totalPrice
+      totalPrice,
+      qrContent
     }));
     
-    alert(JSON.stringify({
-      ...formData,
-      totalPrice
-    }));
+    // Afficher le QR code
+    setShowQRCode(true);
   };
 
   return (
@@ -185,6 +225,20 @@ export default function Home() {
                     type="text"
                     name="address"
                     value={formData.mainContact.address}
+                    onChange={handleMainContactChange}
+                    required
+                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                    hover:border-[#444] transition-all duration-200"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-2 text-gray-400">Ville</label>
+                  <input
+                    type="text"
+                    name="town"
+                    value={formData.mainContact.town}
                     onChange={handleMainContactChange}
                     required
                     className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
@@ -346,6 +400,71 @@ export default function Home() {
             </div>
           </div>
         </div>
+        {/* Modal QR Code */}
+        {showQRCode && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl p-8 max-w-md w-full">
+              <h2 className="text-2xl font-bold text-black mb-4">Scannez ce QR code pour payer</h2>
+              <p className="text-gray-700 mb-6">Montant: {totalPrice.toFixed(2)} CHF</p>
+              
+              <div className="bg-white p-4 rounded-lg flex justify-center" ref={qrRef}>
+                <QRCodeSVG 
+                  value={`SPC
+0200
+1
+CH5400266266100331M2C
+S
+Böhi Lucien
+Nouvelle Avenue
+34
+1907
+Saxon
+CH
+
+
+
+
+
+
+
+${totalPrice.toFixed(2)}
+CHF
+
+
+
+
+
+
+
+NON
+
+Soirée 30 ans - ${formData.mainContact.firstName} ${formData.mainContact.lastName}
+EPD`}
+                  size={250}
+                  bgColor={"#ffffff"}
+                  fgColor={"#000000"}
+                  level={"H"}
+                  includeMargin={true}
+                />
+              </div>
+              
+              <div className="flex justify-between mt-6">
+                <button 
+                  onClick={() => setShowQRCode(false)}
+                  className="px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Fermer
+                </button>
+                <button 
+                  onClick={() => router.push('/')}
+                  className="px-5 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                >
+                  Retour à l'accueil
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity m-12">
             <a
             className="flex items-center gap-2 hover:underline hover:underline-offset-4"
