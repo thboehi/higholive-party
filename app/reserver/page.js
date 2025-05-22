@@ -748,8 +748,8 @@ EPD`}
                 />  
               </div>
               <p className="text-gray-700 font-bold mb-6 text-center">{totalPrice.toFixed(2)} CHF</p>
-              <p className="text-gray-700 mb-6">Si tu ne peux pas scanner maintenant, ne t'en fais pas, <strong>nous t'envoyons un mail</strong> et tu pourras payer plus tard.</p>
-              <p className="text-gray-700 mb-6">À noter: Les transferts bancaires peuvent prendre du temps, nous ne sommes donc pas capable de valider les réservations directement. Mais si vous payez, pas d'inquiétude, on verra ! Dans le cas contraire on reviendra vers vous !</p>
+              <p className="text-gray-700 mb-6">Si tu ne peux pas scanner maintenant, ne t&apos;en fais pas, <strong>nous t&apos;envoyons un mail</strong> et tu pourras payer plus tard.</p>
+              <p className="text-gray-700 mb-6">À noter: Les transferts bancaires peuvent prendre du temps, nous ne sommes donc pas capable de valider les réservations directement. Mais si vous payez, pas d&apos;inquiétude, on verra ! Dans le cas contraire on reviendra vers vous !</p>
               
               <div className="flex justify-between mt-6 space-x-4">
                 <button 
