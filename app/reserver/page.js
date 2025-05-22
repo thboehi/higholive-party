@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import Image from "next/image";
 import ClickSpark from "../components/ClickSpark";
 import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export default function Home() {
   const router = useRouter();
@@ -17,6 +19,10 @@ export default function Home() {
     },
     numberOfPeople: 1,
     additionalPeople: [],
+    pass2Days: {
+      selected: false,
+      daysSelection: "", // "jeudiVendredi", "vendrediSamedi", "jeudiSamedi"
+    },
     reservations: [
       { day: "Jeudi - 9 octobre 2025", option: "", mealOption: "" },
       { day: "Vendredi - 10 octobre 2025", option: "", mealOption: "" },
@@ -64,6 +70,40 @@ export default function Home() {
     });
   };
 
+  const togglePass2Days = (isSelected) => {
+    // Réinitialiser les réservations
+    const resetReservations = [
+      { day: "Jeudi - 9 octobre 2025", option: "", mealOption: "" },
+      { day: "Vendredi - 10 octobre 2025", option: "", mealOption: "" },
+      { day: "Samedi - 11 octobre 2025", option: "", mealOption: "" },
+    ];
+    
+    const updatedFormData = {
+      ...formData,
+      pass2Days: {
+        selected: isSelected,
+        daysSelection: isSelected ? formData.pass2Days.daysSelection : "",
+      },
+      reservations: resetReservations,
+    };
+    
+    setFormData(updatedFormData);
+    calculateTotalPrice(updatedFormData);
+  };
+
+  const handleDaysSelectionChange = (selection) => {
+    const updatedFormData = {
+      ...formData,
+      pass2Days: {
+        ...formData.pass2Days,
+        daysSelection: selection,
+      },
+    };
+    
+    setFormData(updatedFormData);
+    calculateTotalPrice(updatedFormData);
+  };
+
   const handleReservationChange = (index, field, value) => {
     const updatedReservations = [...formData.reservations];
     updatedReservations[index] = {
@@ -84,13 +124,19 @@ export default function Home() {
   const calculateTotalPrice = (data) => {
     let price = 0;
     
-    data.reservations.forEach((reservation) => {
-      if (reservation.option === "dayAndEvening") {
-        price += 45;
-      } else if (reservation.option === "dayEveningAndNight") {
-        price += 55;
-      }
-    });
+    if (data.pass2Days.selected) {
+      // Prix fixe pour le pass 2 jours
+      price = 90;
+    } else {
+      // Calcul standard par jour
+      data.reservations.forEach((reservation) => {
+        if (reservation.option === "jourEtSoir") {
+          price += 45;
+        } else if (reservation.option === "jourSoirEtNuit") {
+          price += 55;
+        }
+      });
+    }
 
     // Multiplier par le nombre de personnes
     price *= data.numberOfPeople;
@@ -123,13 +169,44 @@ export default function Home() {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Formatage du prix avec 2 décimales et un point
-    const formattedPrice = totalPrice.toFixed(2);
-    
-    // Création du contenu du QR code avec le format exact demandé
-    const qrContent = `SPC
+  e.preventDefault();
+  
+  // Validation des données
+  const validationErrors = validateForm();
+  
+  if (validationErrors.length > 0) {
+    // Afficher les erreurs avec toast
+    toast.error(
+      <div>
+        <p className="font-bold mb-2">Merci de corriger les erreurs suivantes:</p>
+        <ul className="list-disc pl-4">
+          {validationErrors.map((error, index) => (
+            <li key={index}>{error}</li>
+          ))}
+        </ul>
+      </div>,
+      {
+        position: "top-center",
+        autoClose: 5000,
+        hideProgressBar: true,
+        newestOnTop: true,
+        closeOnClick: false,
+        rtl: false,
+        pauseOnFocusLoss: true,
+        draggable: true,
+        pauseOnHover: true,
+        theme: "dark",
+        toastClassName: "bg-[#222] text-white",
+      }
+    );
+    return;
+  }
+  
+  // Formatage du prix avec 2 décimales et un point
+  const formattedPrice = totalPrice.toFixed(2);
+  
+  // Création du contenu du QR code avec le format exact demandé
+  const qrContent = `SPC
 0200
 1
 CH5400266266100331M2C
@@ -158,18 +235,187 @@ CHF
 
 NON
 
-Soirée 30 ans ${formData.mainContact.firstName} ${formData.mainContact.lastName}
+PARTY - ${formData.mainContact.firstName} ${formData.mainContact.lastName}
 EPD`;
-    
-    // Stockage des données pour la page résumé
-    localStorage.setItem("reservationData", JSON.stringify({
+  
+  // Stockage des données pour la page résumé
+  localStorage.setItem("reservationData", JSON.stringify({
+    ...formData,
+    totalPrice,
+    qrContent
+  }));
+  
+  // Afficher le QR code
+  setShowQRCode(true);
+};
+
+// Nouvelle fonction pour envoyer les données à l'API
+const confirmReservation = async () => {
+  // Afficher un toast de chargement
+  const loadingToastId = toast.loading("Traitement de votre réservation...", {
+    position: "top-center",
+    theme: "dark",
+    toastClassName: "bg-[#222] text-white",
+  });
+  
+  try {
+    // Données à envoyer à l'API
+    const apiData = {
       ...formData,
-      totalPrice,
-      qrContent
-    }));
+      totalPrice
+    };
     
-    // Afficher le QR code
-    setShowQRCode(true);
+    // Appel à l'API
+    const response = await fetch('/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(apiData),
+    });
+    
+    const data = await response.json();
+    
+    // Fermer le toast de chargement
+    toast.dismiss(loadingToastId);
+    
+    if (!response.ok) {
+      // Gestion des erreurs
+      if (data.errors && data.errors.length > 0) {
+        toast.error(
+          <div>
+            <p className="font-bold mb-2">Erreurs de validation:</p>
+            <ul className="list-disc pl-4">
+              {data.errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
+          </div>,
+          {
+            position: "top-center",
+            autoClose: 5000,
+            theme: "dark",
+            toastClassName: "bg-[#222] text-white",
+          }
+        );
+      } else {
+        toast.error(data.message || "Une erreur s'est produite", {
+          position: "top-center",
+          autoClose: 5000,
+          theme: "dark",
+          toastClassName: "bg-[#222] text-white",
+        });
+      }
+      return;
+    }
+    
+    // Succès
+    toast.success("Réservation confirmée avec succès!", {
+      position: "top-center",
+      autoClose: 5000,
+      theme: "dark",
+      toastClassName: "bg-[#222] text-white",
+    });
+    
+    // Fermer la modal QR après confirmation
+    setShowQRCode(false);
+    
+    // Rediriger ou afficher un message de succès
+    // router.push('/success');
+    
+  } catch (error) {
+    // Fermer le toast de chargement
+    toast.dismiss(loadingToastId);
+    
+    // Afficher une erreur
+    toast.error("Une erreur s'est produite lors de la connexion au serveur", {
+      position: "top-center",
+      autoClose: 5000,
+      theme: "dark",
+      toastClassName: "bg-[#222] text-white",
+    });
+    console.error("Erreur API:", error);
+  }
+};
+
+// Fonction de validation du formulaire
+const validateForm = () => {
+  const errors = [];
+  
+  // Valider le contact principal
+  const { firstName, lastName, address, town, email } = formData.mainContact;
+  if (!firstName.trim()) errors.push("Le prénom du contact principal est requis");
+  if (!lastName.trim()) errors.push("Le nom de famille du contact principal est requis");
+  if (!address.trim()) errors.push("L'adresse du contact principal est requise");
+  if (!town.trim()) errors.push("La ville du contact principal est requise");
+  if (!email.trim()) errors.push("L'email du contact principal est requis");
+  if (email.trim() && !email.includes('@')) errors.push("L'email doit être valide");
+  
+  // Valider les personnes supplémentaires
+  if (formData.numberOfPeople > 1) {
+    formData.additionalPeople.forEach((person, index) => {
+      if (!person.firstName?.trim()) {
+        errors.push(`Le prénom de la personne ${index + 2} est requis`);
+      }
+      if (!person.lastName?.trim()) {
+        errors.push(`Le nom de famille de la personne ${index + 2} est requis`);
+      }
+    });
+  }
+  
+  // Valider le pass 2 jours si sélectionné
+  if (formData.pass2Days.selected && !formData.pass2Days.daysSelection) {
+    errors.push("Veuillez sélectionner quels jours pour le pass 2 jours");
+  }
+  
+  // Valider les réservations quotidiennes
+  if (!formData.pass2Days.selected) {
+    // Au moins une réservation doit être sélectionnée
+    const hasAnyReservation = formData.reservations.some(res => res.option);
+    if (!hasAnyReservation) {
+      errors.push("Veuillez sélectionner au moins une option de réservation pour un jour");
+    }
+    
+    // Chaque jour sélectionné doit avoir une option de repas
+    formData.reservations.forEach((res, index) => {
+      if (res.option && !res.mealOption) {
+        errors.push(`Veuillez sélectionner une option de repas pour ${res.day}`);
+      }
+    });
+  } else {
+    // Si pass 2 jours sélectionné, vérifier que les options de repas sont choisies
+    const selectedDays = daysToDisplay();
+    selectedDays.forEach(dayIndex => {
+      if (!formData.reservations[dayIndex].mealOption) {
+        errors.push(`Veuillez sélectionner une option de repas pour ${formData.reservations[dayIndex].day}`);
+      }
+    });
+  }
+  
+  // Vérifier que le prix total n'est pas 0
+  if (totalPrice <= 0) {
+    errors.push("Aucune option n'a été sélectionnée, impossible de procéder au paiement");
+  }
+  
+  return errors;
+};
+
+  // Détermine quels jours afficher en fonction de la sélection du pass 2 jours
+  const daysToDisplay = () => {
+    if (!formData.pass2Days.selected) {
+      return [0, 1, 2]; // Tous les jours
+    }
+    
+    switch (formData.pass2Days.daysSelection) {
+      case "jeudiVendredi":
+        return [0, 1]; // Jeudi et Vendredi
+      case "vendrediSamedi":
+        return [1, 2]; // Vendredi et Samedi
+      case "jeudiSamedi":
+        return [0, 2]; // Jeudi et Samedi
+      default:
+        return []; // Aucun jour sélectionné encore
+    }
   };
 
   return (
@@ -181,6 +427,8 @@ EPD`;
       duration={400}
     >
       <div className="min-h-screen bg-black text-gray-300 py-12 pb-48">
+        {/* Ajouter le conteneur de toast */}
+        <ToastContainer />
         <div className="max-w-3xl mx-auto px-4">
           <h1 className="text-4xl font-bold text-center mb-4 text-white">Réservation</h1>
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
@@ -286,7 +534,7 @@ EPD`;
             
             {formData.numberOfPeople > 1 && (
               <div className="mb-10">
-                <h2 className="text-xl font-bold mb-6 text-white">Personnes supplémentaires</h2>
+                <h2 className="text-xl font-bold mb-6 mt-28 text-white">Personnes supplémentaires</h2>
                 <div className="space-y-6">
                   {Array.from({ length: formData.numberOfPeople - 1 }).map((_, index) => (
                     <div key={index} className="bg-[#0a0a0a] p-5 rounded-xl border border-[#222]">
@@ -323,57 +571,109 @@ EPD`;
               </div>
             )}
             
-            <div className="space-y-8 mb-20">
-              {formData.reservations.map((reservation, index) => (
-                <div key={index} className="bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
-                  <h3 className="text-xl font-medium mb-6 border-b border-[#333] pb-3 text-white">{reservation.day}</h3>
-                  
-                  <div className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-400">Option</label>
-                      <select
-                        value={reservation.option}
-                        onChange={(e) => handleReservationChange(index, "option", e.target.value)}
-                        className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                        focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                        hover:border-[#444] transition-all duration-200 appearance-none"
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
-                                 backgroundPosition: `right 0.5rem center`,
-                                 backgroundRepeat: `no-repeat`, 
-                                 backgroundSize: `1.5em 1.5em`,
-                                 paddingRight: `2.5rem` }}
-                      >
-                        <option value="">Ne vient pas</option>
-                        <option value="dayAndEvening">Journée et soirée (45 CHF)</option>
-                        <option value="dayEveningAndNight">Journée, soirée et nuit (55 CHF)</option>
-                      </select>
-                    </div>
-                    
-                    {reservation.option && (
-                      <div>
-                        <label className="block text-sm font-medium mb-2 text-gray-400">Option de repas</label>
-                        <select
-                          value={reservation.mealOption}
-                          onChange={(e) => handleReservationChange(index, "mealOption", e.target.value)}
-                          className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                          focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                          hover:border-[#444] transition-all duration-200 appearance-none"
-                          style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
-                                   backgroundPosition: `right 0.5rem center`,
-                                   backgroundRepeat: `no-repeat`, 
-                                   backgroundSize: `1.5em 1.5em`,
-                                   paddingRight: `2.5rem` }}
-                        >
-                          <option value="">Aucun</option>
-                          <option value="lunchAndDinner">Midi et soir (compris)</option>
-                          <option value="dinnerOnly">Soir uniquement (compris)</option>
-                        </select>
-                      </div>
-                    )}
-                  </div>
+            {/* Section Pass 2 jours */}
+            <h2 className="text-xl font-bold mb-6 mt-28 text-white">Options de réservations</h2>
+            <div className="mb-10 bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
+              <div className="flex items-center mb-4">
+                <input
+                  type="checkbox"
+                  id="pass2days"
+                  checked={formData.pass2Days.selected}
+                  onChange={(e) => togglePass2Days(e.target.checked)}
+                  className="w-5 h-5 rounded accent-violet-500 bg-black border-[#333]"
+                />
+                <label htmlFor="pass2days" className="ml-3 text-xl font-medium text-white">
+                Pass 2 jours (comprend 2 jours et 2 nuits - 90 CHF par personne)
+                </label>
+              </div>
+              
+              {formData.pass2Days.selected && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium mb-2 text-gray-400">Choisissez vos jours</label>
+                  <select
+                    value={formData.pass2Days.daysSelection}
+                    onChange={(e) => handleDaysSelectionChange(e.target.value)}
+                    required={formData.pass2Days.selected}
+                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                    hover:border-[#444] transition-all duration-200 appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                             backgroundPosition: `right 0.5rem center`,
+                             backgroundRepeat: `no-repeat`, 
+                             backgroundSize: `1.5em 1.5em`,
+                             paddingRight: `2.5rem` }}
+                  >
+                    <option value="">Sélectionnez vos jours</option>
+                    <option value="jeudiVendredi">Jeudi et Vendredi</option>
+                    <option value="vendrediSamedi">Vendredi et Samedi</option>
+                    <option value="jeudiSamedi">Jeudi et Samedi</option>
+                  </select>
                 </div>
-              ))}
+              )}
             </div>
+            
+            {/* N'afficher les options de réservation que si le Pass 2 jours n'est pas sélectionné ou si des jours sont sélectionnés */}
+            {(!formData.pass2Days.selected || 
+             (formData.pass2Days.selected && formData.pass2Days.daysSelection)) && (
+              <div className="space-y-8 mb-20">
+                {formData.reservations.map((reservation, index) => {
+                  // N'afficher que les jours correspondant à la sélection
+                  if (!daysToDisplay().includes(index)) return null;
+                  
+                  return (
+                    <div key={index} className="bg-[#0a0a0a] p-6 rounded-2xl border border-[#222]">
+                      <h3 className="text-xl font-medium mb-6 border-b border-[#333] pb-3 text-white">{reservation.day}</h3>
+                      
+                      <div className="space-y-6">
+                        {!formData.pass2Days.selected && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-gray-400">Option</label>
+                            <select
+                              value={reservation.option}
+                              onChange={(e) => handleReservationChange(index, "option", e.target.value)}
+                              className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                              focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                              hover:border-[#444] transition-all duration-200 appearance-none"
+                              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                                     backgroundPosition: `right 0.5rem center`,
+                                     backgroundRepeat: `no-repeat`, 
+                                     backgroundSize: `1.5em 1.5em`,
+                                     paddingRight: `2.5rem` }}
+                            >
+                              <option value="">Ne vient pas</option>
+                              <option value="jourEtSoir">Journée et soirée (45 CHF)</option>
+                              <option value="jourSoirEtNuit">Journée, soirée et nuit (55 CHF)</option>
+                            </select>
+                          </div>
+                        )}
+                        
+                        {(formData.pass2Days.selected || reservation.option) && (
+                          <div>
+                            <label className="block text-sm font-medium mb-2 text-gray-400">Option de repas</label>
+                            <select
+                              value={reservation.mealOption}
+                              onChange={(e) => handleReservationChange(index, "mealOption", e.target.value)}
+                              className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                              focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                              hover:border-[#444] transition-all duration-200 appearance-none"
+                              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, 
+                                     backgroundPosition: `right 0.5rem center`,
+                                     backgroundRepeat: `no-repeat`, 
+                                     backgroundSize: `1.5em 1.5em`,
+                                     paddingRight: `2.5rem` }}
+                            >
+                              <option value="">Aucun</option>
+                              <option value="midiEtSoir">Midi et soir (compris)</option>
+                              <option value="soirSeulement">Soir uniquement (compris)</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </form>
           
           {/* Barre fixe en bas de l'écran */}
@@ -404,10 +704,10 @@ EPD`;
         {showQRCode && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-8 max-w-md w-full">
-              <h2 className="text-2xl font-bold text-black mb-4">Scannez ce QR code pour payer</h2>
-              <p className="text-gray-700 mb-6">Montant: {totalPrice.toFixed(2)} CHF</p>
+              <h2 className="text-2xl font-bold text-black mb-4">Facture QR</h2>
+              <p className="text-gray-700 mb-6">Afin de finaliser ta réservation, tu peux payer en scannant ce code QR avec <strong>ton application bancaire.</strong></p>
               
-              <div className="bg-white p-4 rounded-lg flex justify-center" ref={qrRef}>
+              <div className="bg-white p-0 rounded-lg flex justify-center" ref={qrRef}>
                 <QRCodeSVG 
                   value={`SPC
 0200
@@ -438,22 +738,32 @@ CHF
 
 NON
 
-Soirée 30 ans - ${formData.mainContact.firstName} ${formData.mainContact.lastName}
+PARTY - ${formData.mainContact.firstName} ${formData.mainContact.lastName}
 EPD`}
                   size={250}
                   bgColor={"#ffffff"}
                   fgColor={"#000000"}
                   level={"H"}
                   includeMargin={true}
-                />
+                />  
               </div>
+              <p className="text-gray-700 font-bold mb-6 text-center">{totalPrice.toFixed(2)} CHF</p>
+              <p className="text-gray-700 mb-6">Si tu ne peux pas scanner maintenant, ne t'en fais pas, <strong>nous t'envoyons un mail</strong> et tu pourras payer plus tard.</p>
+              <p className="text-gray-700 mb-6">À noter: Les transferts bancaires peuvent prendre du temps, nous ne sommes donc pas capable de valider les réservations directement. Mais si vous payez, pas d'inquiétude, on verra ! Dans le cas contraire on reviendra vers vous !</p>
               
-              <div className="flex justify-between mt-6">
+              <div className="flex justify-between mt-6 space-x-4">
                 <button 
                   onClick={() => setShowQRCode(false)}
-                  className="px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-5 py-2 bg-gray-200 text-black rounded-lg hover:bg-gray-300 transition-colors cursor-pointer"
                 >
-                  Fermer
+                  Retour
+                </button>
+                
+                <button 
+                  onClick={confirmReservation}
+                  className="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex-grow cursor-pointer"
+                >
+                  Confirmer la réservation
                 </button>
               </div>
             </div>
