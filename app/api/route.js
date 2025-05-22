@@ -5,6 +5,7 @@ import { MongoClient } from 'mongodb';
 const uri = process.env.MONGO_URI;
 const dbName = process.env.MONGO_DB || 'higholive-party';
 const n8nEndpoint = process.env.N8N_ENDPOINT;
+const adminApiKey = process.env.ADMIN_API_KEY; // Récupérer la clé API
 
 // Fonction pour valider les données
 function validateFormData(formData) {
@@ -160,8 +161,8 @@ export async function POST(request) {
     await db.collection('reservations').insertOne(reservation);
     
     // Fermer la connexion MongoDB
-    await client.close();
-    client = null;
+    // await client.close(); // Déplacé dans le bloc finally
+    // client = null; // Déplacé dans le bloc finally
     
     // Renvoyer une réponse réussie
     return NextResponse.json({ 
@@ -171,7 +172,7 @@ export async function POST(request) {
     });
     
   } catch (error) {
-    console.error('Erreur API:', error);
+    console.error('Erreur API (POST):', error);
     
     return NextResponse.json({ 
       success: false, 
@@ -180,7 +181,43 @@ export async function POST(request) {
   } finally {
     // S'assurer que la connexion MongoDB est fermée même en cas d'erreur
     if (client) {
-      await client.close().catch(console.error);
+      await client.close().catch(err => console.error('Erreur lors de la fermeture de la connexion MongoDB (POST):', err));
+    }
+  }
+}
+
+// GET - Récupérer toutes les réservations (sécurisé par clé API)
+export async function GET(request) {
+  let client = null;
+  try {
+    // Vérifier la clé API
+    const providedApiKey = request.headers.get('x-api-key'); // Ou 'Authorization': 'Bearer VOTRE_CLE'
+    if (!adminApiKey) {
+        console.error("ADMIN_API_KEY n'est pas configurée côté serveur.");
+        return NextResponse.json({ success: false, message: "Configuration serveur incorrecte." }, { status: 500 });
+    }
+    if (providedApiKey !== adminApiKey) {
+      return NextResponse.json({ success: false, message: "Accès non autorisé." }, { status: 401 });
+    }
+
+    // Se connecter à MongoDB
+    client = new MongoClient(uri);
+    await client.connect();
+    const db = client.db(dbName);
+
+    // Récupérer toutes les réservations
+    const reservations = await db.collection('reservations').find({}).toArray();
+
+    // Renvoyer les réservations
+    return NextResponse.json({ success: true, data: reservations });
+
+  } catch (error) {
+    console.error('Erreur API (GET):', error);
+    return NextResponse.json({ success: false, message: "Une erreur s'est produite lors de la récupération des réservations." }, { status: 500 });
+  } finally {
+    // S'assurer que la connexion MongoDB est fermée même en cas d'erreur
+    if (client) {
+      await client.close().catch(err => console.error('Erreur lors de la fermeture de la connexion MongoDB (GET):', err));
     }
   }
 }
