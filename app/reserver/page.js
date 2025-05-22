@@ -126,8 +126,10 @@ export default function Home() {
       totalPrice
     }));
     
-    // Redirection vers la page résumé
-    router.push("/resume");
+    alert(JSON.stringify({
+      ...formData,
+      totalPrice
+    }));
   };
 
   return (
@@ -147,19 +149,7 @@ export default function Home() {
             <div className="mb-10">
               <h2 className="text-2xl font-bold mb-6 text-white">Contact principal</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-sm font-medium mb-2 text-gray-400">Nom</label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    value={formData.mainContact.lastName}
-                    onChange={handleMainContactChange}
-                    required
-                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
-                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
-                    hover:border-[#444] transition-all duration-200"
-                  />
-                </div>
+                
                 
                 <div>
                   <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
@@ -167,6 +157,20 @@ export default function Home() {
                     type="text"
                     name="firstName"
                     value={formData.mainContact.firstName}
+                    onChange={handleMainContactChange}
+                    required
+                    className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
+                    focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
+                    hover:border-[#444] transition-all duration-200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={formData.mainContact.lastName}
                     onChange={handleMainContactChange}
                     required
                     className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
@@ -235,11 +239,11 @@ export default function Home() {
                       <h3 className="text-lg font-medium mb-4 text-white">Personne {index + 2}</h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-gray-400">Nom</label>
+                          <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
                           <input
                             type="text"
-                            value={formData.additionalPeople[index]?.lastName || ""}
-                            onChange={(e) => handleAdditionalPersonChange(index, "lastName", e.target.value)}
+                            value={formData.additionalPeople[index]?.firstName || ""}
+                            onChange={(e) => handleAdditionalPersonChange(index, "firstName", e.target.value)}
                             required
                             className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
                             focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
@@ -247,11 +251,11 @@ export default function Home() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium mb-2 text-gray-400">Prénom</label>
+                          <label className="block text-sm font-medium mb-2 text-gray-400">Nom de famille</label>
                           <input
                             type="text"
-                            value={formData.additionalPeople[index]?.firstName || ""}
-                            onChange={(e) => handleAdditionalPersonChange(index, "firstName", e.target.value)}
+                            value={formData.additionalPeople[index]?.lastName || ""}
+                            onChange={(e) => handleAdditionalPersonChange(index, "lastName", e.target.value)}
                             required
                             className="w-full bg-black border border-[#333] rounded-xl py-3 px-4 text-white 
                             focus:outline-none focus:border-[#666] focus:ring-1 focus:ring-[#666] 
@@ -342,6 +346,24 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity m-12">
+            <a
+            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+            href="https://thbo.ch/"
+            target="_blank"
+            rel=""
+            >
+            <Image
+                aria-hidden
+                className="dark:invert"
+                src="/pen-tool.svg"
+                alt="Pen Tool icon"
+                width={16}
+                height={16}
+            />
+            thbo.ch
+            </a>
+        </footer>
       </div>
     </ClickSpark>
   );
