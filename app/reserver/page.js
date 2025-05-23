@@ -431,7 +431,7 @@ const validateForm = () => {
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
           {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
           <p className='text-2xl font-bold text-center mb-8 text-red-500'>Attention! </p>
-          <p className='text-xl font-bold text-center mb-8 text-red-500'>Cette page est en version beta et n'est pas encore fonctionnelle.Toutes les inscriptions que vous ferez ne seront pas prises en compte, la base de données sera réinitialisées avant le déploiement.</p>
+          <p className='text-xl font-bold text-center mb-8 text-red-500'>Cette page est en version beta et n&apos;est pas encore fonctionnelle.Toutes les inscriptions que vous ferez ne seront pas prises en compte, la base de données sera réinitialisées avant le déploiement.</p>
           <p className='text-xl font-bold text-center mb-8 text-red-500'>Merci de votre compréhension.</p>
           {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
           {isReservationConfirmed ? (
