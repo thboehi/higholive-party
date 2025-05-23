@@ -36,7 +36,8 @@ export default function Home() {
   const [showQRCode, setShowQRCode] = useState(false);
   const qrRef = useRef(null);
   const [totalPrice, setTotalPrice] = useState(0);
-  const [isReservationConfirmed, setIsReservationConfirmed] = useState(false); // Nouvel état
+  const [isReservationConfirmed, setIsReservationConfirmed] = useState(false);
+  const [confirmedReservationId, setConfirmedReservationId] = useState(null);
 
   const handleMainContactChange = (e) => {
     const { name, value } = e.target;
@@ -309,6 +310,10 @@ const confirmReservation = async () => {
     });
 
     // Actions immédiates après la confirmation et l'affichage du toast
+    if (data.reservationId) {
+      localStorage.setItem('lastReservationId', data.reservationId);
+      setConfirmedReservationId(data.reservationId); // Stocker l'ID de réservation
+    }
     setFormData(initialFormData); 
     setTotalPrice(0); 
     setIsReservationConfirmed(true); 
@@ -402,8 +407,11 @@ const validateForm = () => {
   };
 
   const handleNewReservation = () => {
-    setIsReservationConfirmed(false); // Cacher le message et réafficher le formulaire
-    // Le formulaire est déjà réinitialisé, donc pas besoin de setFormData ici
+    setIsReservationConfirmed(false); 
+    setConfirmedReservationId(null); // Réinitialiser l'ID de réservation confirmé
+    // Le formulaire est déjà réinitialisé par setFormData(initialFormData) dans confirmReservation
+    // setFormData(initialFormData); // Peut être redondant si déjà fait, mais assure la réinitialisation
+    // setTotalPrice(0); // Idem
   };
 
   return (
@@ -438,14 +446,23 @@ const validateForm = () => {
               <p className="text-lg mb-6 text-white">
                 Veuillez vérifier votre boîte de réception (et votre dossier de courriers indésirables/spam) pour l&apos;e-mail de confirmation.
               </p>
+              {confirmedReservationId && (
+                <p className="text-lg my-6">
+                  <Link href={`https://party.higholive.ch/pay?reservationId=${confirmedReservationId}`} legacyBehavior>
+                    <a className="text-sky-400 hover:text-sky-300 underline font-semibold">
+                      Voir l'état de votre réservation
+                    </a>
+                  </Link>
+                </p>
+              )}
               <p className="text-sm text-gray-500 mb-8">
                 (Pensez à vérifier vos spams !)
               </p>
               <button
                 onClick={handleNewReservation}
-                className="bg-violet-600 hover:bg-violet-700 text-white py-3 px-6 rounded-xl font-medium 
-                transition duration-300 border border-violet-700 hover:border-violet-800
-                focus:outline-none focus:border-violet-900 focus:ring-2 focus:ring-violet-500
+                className="bg-gray-600 hover:bg-gray-700 text-white py-3 px-6 rounded-xl font-medium 
+                transition duration-300 border border-gray-700 hover:border-gray-800
+                focus:outline-none focus:border-gray-900 focus:ring-2 focus:ring-gray-500
                 relative overflow-hidden group min-w-[200px] cursor-pointer"
               >
                 Faire une nouvelle réservation
