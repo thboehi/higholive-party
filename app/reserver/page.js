@@ -450,7 +450,7 @@ const validateForm = () => {
                 <p className="text-lg my-6">
                   <Link href={`https://party.higholive.ch/pay?reservationId=${confirmedReservationId}`} legacyBehavior>
                     <a className="text-sky-400 hover:text-sky-300 underline font-semibold">
-                      Voir l'état de votre réservation
+                      Voir l&apos;état de votre réservation
                     </a>
                   </Link>
                 </p>
