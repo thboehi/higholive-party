@@ -190,17 +190,17 @@ export default function Home() {
         </ul>
       </div>,
       {
-        position: "top-center",
+        position: "top-right",
         autoClose: 5000,
-        hideProgressBar: true,
+        hideProgressBar: false,
         newestOnTop: true,
-        closeOnClick: false,
+        closeOnClick: true,
         rtl: false,
         pauseOnFocusLoss: true,
         draggable: true,
         pauseOnHover: true,
-        theme: "dark",
-        toastClassName: "bg-[#222] text-white",
+        theme: "colored",
+        toastClassName: "bg-gray-500 text-white",
       }
     );
     return;
@@ -256,7 +256,7 @@ EPD`;
 // Nouvelle fonction pour envoyer les données à l'API
 const confirmReservation = async () => {
   const loadingToastId = toast.loading("Traitement de votre réservation...", {
-    position: "top-center",
+    position: "top-right",
     theme: "dark",
     toastClassName: "bg-[#222] text-white",
   });
@@ -290,20 +290,25 @@ const confirmReservation = async () => {
             </ul>
           </div>,
           {
-            position: "top-center",
+            position: "top-right",
             autoClose: 5000,
-            theme: "dark",
+            theme: "colored",
             toastClassName: "bg-[#222] text-white",
           }
         );
       } else {
-        toast.error(data.message || "Une erreur s'est produite", { /* ... toast options ... */ });
+        toast.error(data.message || "Une erreur s'est produite", { 
+          position: "top-right",
+          autoClose: 5000,
+          theme: "colored",
+          toastClassName: "bg-[#222] text-white",
+        });
       }
       return;
     }
     
     toast.success("Réservation confirmée avec succès!", {
-      position: "top-center",
+      position: "top-right",
       autoClose: 3000, // Réduire un peu le temps d'affichage
       theme: "dark",
       toastClassName: "bg-[#222] text-white",
@@ -321,7 +326,12 @@ const confirmReservation = async () => {
     
   } catch (error) {
     toast.dismiss(loadingToastId);
-    toast.error("Une erreur s'est produite lors de la connexion au serveur", { /* ... toast options ... */ });
+    toast.error("Une erreur s'est produite lors de la connexion au serveur", { 
+      position: "top-right",
+      autoClose: 5000,
+      theme: "colored",
+      toastClassName: "bg-[#222] text-white",
+     });
     console.error("Erreur API:", error);
   }
 };

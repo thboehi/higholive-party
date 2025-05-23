@@ -21,7 +21,7 @@ export const metadata = {
   description: siteDescription,
   applicationName: "Party Ben & Lulu",
   authors: [{ name: "thbo.ch" }], // Ou le nom du développeur/organisateur
-  keywords: ["anniversaire", "Ben & Lulu", "30 ans", "fête", "Anzère", "chalet", "party", "réservation"],
+  keywords: ["anniversaire", "Ben & Lulu", "30 ans", "fête", "Anzère", "chalet", "party", "réservation", "benoit", "lucien", "thbo.ch", "boehi", "junot", "benoit junot", "lucien boehi"],
   
   // Open Graph Metadata
   openGraph: {
