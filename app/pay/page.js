@@ -338,7 +338,7 @@ export default function PaymentPage() {
       sparkCount={8}
       duration={400}
     >
-      <div className="min-h-screen bg-black text-gray-300 py-12 pb-48 flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-black text-gray-300 pt-12 flex flex-col items-center justify-center">
         <div className="max-w-3xl mx-auto px-4 w-full">
           <div className="mb-8">
             <Link href="/" legacyBehavior>
@@ -358,12 +358,12 @@ export default function PaymentPage() {
           </Suspense>
         </div>
         
-        <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity m-12 mt-auto">
+        <footer className="mt-auto p-12 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity">
           <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
+            className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-gray-400 hover:text-gray-200"
             href="https://thbo.ch/"
             target="_blank"
-            rel="noopener noreferrer" 
+            rel="noopener noreferrer"
           >
             <Image
               aria-hidden

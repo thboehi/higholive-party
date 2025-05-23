@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 // Fonction pour traduire les options en texte lisible
 const translateOption = (option) => {
@@ -38,6 +39,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
+  const [expandedReservations, setExpandedReservations] = useState(new Set());
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -90,6 +92,7 @@ export default function AdminPage() {
       setIsAuthenticated(false);
       setReservations([]);
       setSummary(null);
+      setExpandedReservations(new Set()); // Réinitialiser les réservations étendues
     }
   };
 
@@ -124,6 +127,7 @@ export default function AdminPage() {
     } else {
       setReservations([]);
       setSummary(null);
+      setExpandedReservations(new Set());
     }
   }, [isAuthenticated]);
 
@@ -137,6 +141,7 @@ export default function AdminPage() {
         totalDeleted: reservationsData.filter(r => r.status === 'deleted').length,
         totalParticipantsAllReservations: 0,
         totalRevenuePaid: 0,
+        totalRevenuePending: 0, // Ajout pour le revenu en attente
       },
       days: {
         "Jeudi - 9 octobre 2025": { ...initialDaySummary(), name: "Jeudi" },
@@ -151,6 +156,8 @@ export default function AdminPage() {
       newSummary.global.totalParticipantsAllReservations += res.numberOfPeople;
       if (res.status === 'paid') {
         newSummary.global.totalRevenuePaid += res.totalPrice;
+      } else if (res.status === 'pending') { // Calcul du revenu en attente
+        newSummary.global.totalRevenuePending += res.totalPrice;
       }
 
       const joursIndexesPresents = new Set();
@@ -213,16 +220,32 @@ export default function AdminPage() {
         const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour du statut' }));
         throw new Error(errorData.message || 'Erreur lors de la mise à jour du statut');
       }
-      setReservations(prevReservations =>
-        prevReservations.map(reservation =>
-          reservation.reservationId === reservationId ? { ...reservation, status: newStatus } : reservation
-        )
+      // Mettre à jour la liste des réservations pour refléter le changement de statut
+      const updatedReservations = reservations.map(reservation =>
+        reservation.reservationId === reservationId ? { ...reservation, status: newStatus } : reservation
       );
+      setReservations(updatedReservations);
+      // Recalculer le résumé après la mise à jour du statut
+      setSummary(calculateSummary(updatedReservations));
+
     } catch (err) {
       setError(err.message);
     }
   };
 
+  const toggleExpandReservation = (reservationId) => {
+    setExpandedReservations(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(reservationId)) {
+        newSet.delete(reservationId);
+      } else {
+        newSet.add(reservationId);
+      }
+      return newSet;
+    });
+  };
+
+  // ... (JSX pour isAuthLoading, !isAuthenticated, loading, error)
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center text-white">
@@ -308,19 +331,25 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-black text-gray-300 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-white">Page d&apos;Administration</h1>
-            <div>
-                <button
-                    onClick={handleLogout}
-                    className="mr-4 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-md text-white text-sm font-semibold transition-colors cursor-pointer"
-                >
-                    Se déconnecter
-                </button>
-                <Link href="/" className="text-purple-400 hover:text-purple-300 transition-colors cursor-pointer">
-                    &larr; Retour à l&apos;accueil
-                </Link>
-            </div>
+        <div className="mb-8">
+          <Link href="/" legacyBehavior>
+            <a className="inline-flex items-center text-gray-400 hover:text-white transition-colors duration-200 group">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 transform group-hover:-translate-x-1 transition-transform duration-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Retour à l&apos;accueil
+            </a>
+          </Link>
+        </div>
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4 sm:mb-0">Page d&apos;Administration</h1>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-md text-white text-sm font-semibold transition-colors cursor-pointer self-end sm:self-center"
+          >
+            Se déconnecter
+          </button>
         </div>
 
         {error && (
@@ -336,13 +365,41 @@ export default function AdminPage() {
         {summary && (
           <div className="bg-[#111] rounded-2xl p-6 shadow-2xl border border-[#222] mb-10">
             <h2 className="text-2xl font-semibold text-white mb-6 border-b border-gray-700 pb-3">Résumé Général</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6 text-center">
-              <div><p className="text-gray-400 text-sm">Total Réservations</p><p className="text-xl font-bold text-white">{summary.global.totalReservations}</p></div>
-              <div><p className="text-gray-400 text-sm">Payées</p><p className="text-xl font-bold text-green-400">{summary.global.totalPaid}</p></div>
-              <div><p className="text-gray-400 text-sm">En attente</p><p className="text-xl font-bold text-yellow-400">{summary.global.totalPending}</p></div>
-              <div><p className="text-gray-400 text-sm">Annulées</p><p className="text-xl font-bold text-red-400">{summary.global.totalDeleted}</p></div>
-              <div><p className="text-gray-400 text-sm">Participants (actifs)</p><p className="text-xl font-bold text-white">{summary.global.totalParticipantsAllReservations}</p></div>
-              <div><p className="text-gray-400 text-sm">Revenu (payé)</p><p className="text-xl font-bold text-green-400">{summary.global.totalRevenuePaid.toFixed(2)} CHF</p></div>
+            
+            {/* Statistiques des réservations */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 text-center">
+              <div>
+                <p className="text-gray-400 text-sm">Total Réservations</p>
+                <p className="text-xl font-bold text-white">{summary.global.totalReservations}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Payées</p>
+                <p className="text-xl font-bold text-green-400">{summary.global.totalPaid}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">En attente</p>
+                <p className="text-xl font-bold text-yellow-400">{summary.global.totalPending}</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Annulées</p>
+                <p className="text-xl font-bold text-red-400">{summary.global.totalDeleted}</p>
+              </div>
+            </div>
+
+            {/* Statistiques financières et participants */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 text-center pt-4 border-t border-gray-800">
+              <div>
+                <p className="text-gray-400 text-sm">Revenu (payé)</p>
+                <p className="text-xl font-bold text-green-400">{summary.global.totalRevenuePaid.toFixed(2)} CHF</p>
+              </div>
+              <div>
+                <p className="text-gray-400 text-sm">Revenu (attente)</p>
+                <p className="text-xl font-bold text-yellow-400">{summary.global.totalRevenuePending.toFixed(2)} CHF</p>
+              </div>
+              <div className="sm:col-span-2 lg:col-span-1"> {/* Pour que Participants prenne toute la largeur sur sm si besoin, ou reste sur la ligne sur lg */}
+                <p className="text-gray-400 text-sm">Participants (actifs)</p>
+                <p className="text-xl font-bold text-white">{summary.global.totalParticipantsAllReservations}</p>
+              </div>
             </div>
             <h3 className="text-xl font-semibold text-white mb-4 mt-6 border-b border-gray-700 pb-3">Résumé par Soirée (pour réservations actives)</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -361,16 +418,17 @@ export default function AdminPage() {
 
         <h2 className="text-2xl font-semibold text-white mb-6">Liste des Réservations ({reservations.length})</h2>
         <div className="space-y-6">
-          {reservations.length > 0 ? reservations.map(reservation => (
+          {reservations.length > 0 ? reservations.map(reservation => {
+            const isExpanded = expandedReservations.has(reservation.reservationId);
+            return (
             <div key={reservation.reservationId} className="bg-[#111] rounded-2xl p-6 shadow-2xl border border-[#222] transition-all hover:border-purple-500">
+              {/* Informations importantes (toujours visibles) */}
               <div className="flex flex-col md:flex-row justify-between md:items-start mb-4">
                 <div>
                     <h3 className="text-xl font-bold text-purple-400">
                         {reservation.mainContact.firstName} {reservation.mainContact.lastName}
                     </h3>
                     <p className="text-sm text-gray-400">ID: {reservation.reservationId}</p>
-                    <p className="text-sm text-gray-400">Email: {reservation.mainContact.email}</p>
-                    <p className="text-sm text-gray-400">Adresse: {reservation.mainContact.address}, {reservation.mainContact.town}</p>
                 </div>
                 <div className="mt-4 md:mt-0 md:text-right">
                     <p className="text-lg">Statut: <span className={getStatusStyle(reservation.status)}>{reservation.status.toUpperCase()}</span></p>
@@ -379,89 +437,133 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
-                <div>
-                    <p className="font-semibold text-gray-200">Participants: {reservation.numberOfPeople}</p>
-                    {reservation.additionalPeople && reservation.additionalPeople.length > 0 && (
-                        <div className="pl-4">
-                        <p className="text-gray-400">Personnes supplémentaires:</p>
-                        <ul className="list-disc list-inside text-gray-300">
-                            {reservation.additionalPeople.map((p, i) => <li key={i}>{p.firstName} {p.lastName}</li>)}
-                        </ul>
-                        </div>
-                    )}
-                </div>
-                <div>
-                    <p className="font-semibold text-gray-200">Pass 2 Jours: 
-                        <span className="font-normal text-white ml-1">
-                        {reservation.pass2Days.selected ? `Oui (${reservation.pass2Days.daysSelection})` : 'Non'}
-                        </span>
-                    </p>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <p className="font-semibold text-gray-200 mb-1">Détails des réservations par jour:</p>
-                <div className="space-y-1 pl-2 text-sm">
-                {reservation.reservations.map((r, index) => {
-                    let dayIsActive = false;
-                    if (reservation.pass2Days.selected) {
-                        if (reservation.pass2Days.daysSelection === "jeudiVendredi" && (index === 0 || index === 1)) dayIsActive = true;
-                        if (reservation.pass2Days.daysSelection === "vendrediSamedi" && (index === 1 || index === 2)) dayIsActive = true;
-                        if (reservation.pass2Days.daysSelection === "jeudiSamedi" && (index === 0 || index === 2)) dayIsActive = true;
-                    } else {
-                        if (r.option) dayIsActive = true;
-                    }
+              {/* Bouton Voir plus/moins */}
+              <button
+                onClick={() => toggleExpandReservation(reservation.reservationId)}
+                className="w-full text-left py-2 px-3 mb-3 text-sm text-purple-400 hover:bg-[#1f1f1f] rounded-md flex justify-between items-center cursor-pointer"
+              >
+                <span>{isExpanded ? 'Voir moins de détails' : 'Voir plus de détails'}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
 
-                    if (dayIsActive) {
-                        return (
-                            <div key={index} className="p-2 bg-[#0A0A0A] rounded border border-[#333]">
-                                <p className="font-medium text-purple-300">{r.day.split(" - ")[0]}:</p>
-                                {!reservation.pass2Days.selected && <p className="ml-2 text-gray-300">Option: {translateOption(r.option)}</p>}
-                                <p className="ml-2 text-gray-300">Repas: {translateMealOption(r.mealOption)}</p>
+              {/* Détails (conditionnels avec transition) */}
+              <div
+                style={{
+                  maxHeight: isExpanded ? '600px' : '0px', // Augmenté pour plus de contenu potentiel
+                  overflow: 'hidden',
+                  transition: 'max-height 0.6s ease-in-out',
+                }}
+              >
+                <div className="pt-4 border-t border-gray-700">
+                  <p className="text-sm text-gray-400 mb-1">Email: {reservation.mainContact.email}</p>
+                  <p className="text-sm text-gray-400 mb-3">Adresse: {reservation.mainContact.address}, {reservation.mainContact.town}</p>
+                
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 text-sm">
+                    <div>
+                        <p className="font-semibold text-gray-200">Participants: {reservation.numberOfPeople}</p>
+                        {reservation.additionalPeople && reservation.additionalPeople.length > 0 && (
+                            <div className="pl-4">
+                            <p className="text-gray-400">Personnes supplémentaires:</p>
+                            <ul className="list-disc list-inside text-gray-300">
+                                {reservation.additionalPeople.map((p, i) => <li key={i}>{p.firstName} {p.lastName}</li>)}
+                            </ul>
                             </div>
-                        );
-                    }
-                    return null;
-                })}
-                </div>
-              </div>
+                        )}
+                    </div>
+                    <div>
+                        <p className="font-semibold text-gray-200">Pass 2 Jours: 
+                            <span className="font-normal text-white ml-1">
+                            {reservation.pass2Days.selected ? `Oui (${reservation.pass2Days.daysSelection})` : 'Non'}
+                            </span>
+                        </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <p className="font-semibold text-gray-200 mb-1">Détails des réservations par jour:</p>
+                    <div className="space-y-1 pl-2 text-sm">
+                    {reservation.reservations.map((r, index) => {
+                        let dayIsActive = false;
+                        if (reservation.pass2Days.selected) {
+                            if (reservation.pass2Days.daysSelection === "jeudiVendredi" && (index === 0 || index === 1)) dayIsActive = true;
+                            if (reservation.pass2Days.daysSelection === "vendrediSamedi" && (index === 1 || index === 2)) dayIsActive = true;
+                            if (reservation.pass2Days.daysSelection === "jeudiSamedi" && (index === 0 || index === 2)) dayIsActive = true;
+                        } else {
+                            if (r.option) dayIsActive = true;
+                        }
 
-              <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-700">
-                {reservation.status !== 'paid' && (
-                  <button 
-                    onClick={() => updateReservationStatus(reservation.reservationId, 'paid')}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    disabled={reservation.status === 'paid'}
-                  >
-                    Marquer Payé
-                  </button>
-                )}
-                {reservation.status !== 'pending' && (
-                  <button 
-                    onClick={() => updateReservationStatus(reservation.reservationId, 'pending')}
-                    className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    disabled={reservation.status === 'pending'}
-                  >
-                    Marquer En Attente
-                  </button>
-                )}
-                {reservation.status !== 'deleted' && (
-                  <button 
-                    onClick={() => updateReservationStatus(reservation.reservationId, 'deleted')}
-                    className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
-                    disabled={reservation.status === 'deleted'}
-                  >
-                    Annuler Réservation
-                  </button>
-                )}
+                        if (dayIsActive) {
+                            return (
+                                <div key={index} className="p-2 bg-[#0A0A0A] rounded border border-[#333]">
+                                    <p className="font-medium text-purple-300">{r.day.split(" - ")[0]}:</p>
+                                    {!reservation.pass2Days.selected && <p className="ml-2 text-gray-300">Option: {translateOption(r.option)}</p>}
+                                    <p className="ml-2 text-gray-300">Repas: {translateMealOption(r.mealOption)}</p>
+                                </div>
+                            );
+                        }
+                        return null;
+                    })}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-gray-700">
+                    {reservation.status !== 'paid' && (
+                      <button 
+                        onClick={() => updateReservationStatus(reservation.reservationId, 'paid')}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                        disabled={reservation.status === 'paid'}
+                      >
+                        Marquer Payé
+                      </button>
+                    )}
+                    {reservation.status !== 'pending' && (
+                      <button 
+                        onClick={() => updateReservationStatus(reservation.reservationId, 'pending')}
+                        className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                        disabled={reservation.status === 'pending'}
+                      >
+                        Marquer En Attente
+                      </button>
+                    )}
+                    {reservation.status !== 'deleted' && (
+                      <button 
+                        onClick={() => updateReservationStatus(reservation.reservationId, 'deleted')}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
+                        disabled={reservation.status === 'deleted'}
+                      >
+                        Annuler Réservation
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          )) : (
+          )
+        }) : (
             <p className="text-center text-gray-500 py-10">Aucune réservation trouvée. Connectez-vous pour voir les données.</p>
           )}
         </div>
       </div>
+      <footer className="mt-auto pt-12 pb-8 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity">
+        <a
+          className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-gray-400 hover:text-gray-200"
+          href="https://thbo.ch/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <Image
+            aria-hidden
+            className="dark:invert" // Assurez-vous que le chemin est correct ou retirez dark:invert si l'image est déjà adaptée
+            src="/pen-tool.svg" // Assurez-vous que cette image est dans votre dossier public
+            alt="Pen Tool icon"
+            width={16}
+            height={16}
+          />
+          thbo.ch
+        </a>
+      </footer>
     </div>
   );
 }

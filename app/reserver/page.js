@@ -414,7 +414,7 @@ const validateForm = () => {
       sparkCount={8}
       duration={400}
     >
-      <div className="min-h-screen bg-black text-gray-300 py-12 pb-48">
+      <div className="min-h-screen bg-black text-gray-300 pt-12 pb-24">
         <ToastContainer />
         <div className="max-w-3xl mx-auto px-4">
           <div className="mb-8">
@@ -429,7 +429,11 @@ const validateForm = () => {
           </div>
           <h1 className="text-4xl font-bold text-center mb-4 text-white">Réservation</h1>
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
-          
+          {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
+          <p className='text-2xl font-bold text-center mb-8 text-red-500'>Attention! </p>
+          <p className='text-xl font-bold text-center mb-8 text-red-500'>Cette page est en version beta et n'est pas encore fonctionnelle.Toutes les inscriptions que vous ferez ne seront pas prises en compte, la base de données sera réinitialisées avant le déploiement.</p>
+          <p className='text-xl font-bold text-center mb-8 text-red-500'>Merci de votre compréhension.</p>
+          {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
           {isReservationConfirmed ? (
             <div className="bg-[#111] rounded-2xl p-8 shadow-2xl border border-[#222] text-center">
               <h2 className="text-3xl font-bold mb-6 text-green-500">Merci pour votre réservation !</h2>
@@ -792,24 +796,24 @@ EPD`}
             </div>
           </div>
         )}
-        <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity m-12">
+        <footer className="mt-auto p-12 flex gap-[24px] flex-wrap items-center justify-center opacity-20 hover:opacity-100 transition-opacity">
             <a
-            className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-            href="https://thbo.ch/"
-            target="_blank"
-            rel="noopener noreferrer"
+              className="flex items-center gap-2 hover:underline hover:underline-offset-4 text-gray-400 hover:text-gray-200"
+              href="https://thbo.ch/"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-            <Image
+              <Image
                 aria-hidden
                 className="dark:invert"
                 src="/pen-tool.svg"
                 alt="Pen Tool icon"
                 width={16}
                 height={16}
-            />
-            thbo.ch
+              />
+              thbo.ch
             </a>
-        </footer>
+          </footer>
       </div>
     </ClickSpark>
   );
