@@ -429,11 +429,6 @@ const validateForm = () => {
           </div>
           <h1 className="text-4xl font-bold text-center mb-4 text-white">Réservation</h1>
           <p className="text-2xl font-bold text-center mb-8 text-white">🎉 30 ANS DE BEN & LULU 🎉</p>
-          {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
-          <p className='text-2xl font-bold text-center mb-8 text-red-500'>Attention! </p>
-          <p className='text-xl font-bold text-center mb-8 text-red-500'>Cette page est en version beta et n&apos;est pas encore fonctionnelle.Toutes les inscriptions que vous ferez ne seront pas prises en compte, la base de données sera réinitialisées avant le déploiement.</p>
-          <p className='text-xl font-bold text-center mb-8 text-red-500'>Merci de votre compréhension.</p>
-          {/* DEBUG A RETIRER AU DEPLOIEMENT FINAL */}
           {isReservationConfirmed ? (
             <div className="bg-[#111] rounded-2xl p-8 shadow-2xl border border-[#222] text-center">
               <h2 className="text-3xl font-bold mb-6 text-green-500">Merci pour votre réservation !</h2>
@@ -730,7 +725,7 @@ const validateForm = () => {
         {/* Modal QR Code */}
         {showQRCode && (
           <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-8 max-w-md w-full">
+            <div className="bg-white rounded-xl p-6 md:p-8 max-w-md w-full max-h-[calc(100vh-2rem)] overflow-y-auto">
               <h2 className="text-2xl font-bold text-black mb-4">Facture QR</h2>
               <p className="text-gray-700 mb-6">Afin de finaliser ta réservation, tu peux payer en scannant ce code QR avec <strong>ton application bancaire.</strong></p>
               
@@ -776,7 +771,6 @@ EPD`}
               </div>
               <p className="text-gray-700 font-bold mb-6 text-center">{totalPrice.toFixed(2)} CHF</p>
               <p className="text-gray-700 mb-6">Si tu ne peux pas scanner maintenant, ne t&apos;en fais pas, <strong>nous t&apos;envoyons un mail</strong> et tu pourras payer plus tard.</p>
-              <p className="text-gray-700 mb-6">À noter: Les transferts bancaires peuvent prendre du temps, nous ne sommes donc pas capable de valider les réservations directement. Mais si vous payez, pas d&apos;inquiétude, on verra ! Dans le cas contraire on reviendra vers vous !</p>
               
               <div className="flex justify-between mt-6 space-x-4">
                 <button 
@@ -793,6 +787,7 @@ EPD`}
                   Confirmer la réservation
                 </button>
               </div>
+              <p className="text-gray-400 mt-6 text-xs">À noter: Les transferts bancaires peuvent prendre du temps, nous ne sommes donc pas capable de valider les réservations directement. Mais si tu paies, pas d&apos;inquiétude, on verra ! Dans le cas contraire on reviendra vers toi !</p>
             </div>
           </div>
         )}
