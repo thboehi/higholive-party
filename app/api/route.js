@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
 import { MongoClient } from 'mongodb';
+import jwt from 'jsonwebtoken';
+import { cookies } from 'next/headers'; // Import cookies
 
 // Configuration MongoDB
 const uri = process.env.MONGO_URI;
 const dbName = process.env.MONGO_DB || 'higholive-party';
 const n8nEndpoint = process.env.N8N_ENDPOINT;
-const adminApiKey = process.env.ADMIN_API_KEY; // Récupérer la clé API
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Fonction pour valider les données
 function validateFormData(formData) {
@@ -23,12 +25,9 @@ function validateFormData(formData) {
   // Valider les personnes supplémentaires
   if (formData.numberOfPeople > 1) {
     formData.additionalPeople.forEach((person, index) => {
-      if (!person.firstName?.trim()) {
-        errors.push(`Le prénom de la personne ${index + 2} est requis`);
-      }
-      if (!person.lastName?.trim()) {
-        errors.push(`Le nom de famille de la personne ${index + 2} est requis`);
-      }
+        if (!person.firstName?.trim() || !person.lastName?.trim()) {
+            errors.push(`Le prénom et le nom de la personne supplémentaire ${index + 1} sont requis`);
+        }
     });
   }
   
@@ -40,18 +39,15 @@ function validateFormData(formData) {
   // Fonction auxiliaire pour déterminer les jours à afficher
   const daysToDisplay = () => {
     if (!formData.pass2Days.selected) {
-      return [0, 1, 2]; // Tous les jours
+        // Retourne les index des jours où une option est sélectionnée
+        return formData.reservations.map((res, index) => res.option ? index : -1).filter(index => index !== -1);
     }
     
     switch (formData.pass2Days.daysSelection) {
-      case "jeudiVendredi":
-        return [0, 1]; // Jeudi et Vendredi
-      case "vendrediSamedi":
-        return [1, 2]; // Vendredi et Samedi
-      case "jeudiSamedi":
-        return [0, 2]; // Jeudi et Samedi
-      default:
-        return []; // Aucun jour sélectionné encore
+      case "jeudiVendredi": return [0, 1];
+      case "vendrediSamedi": return [1, 2];
+      case "jeudiSamedi": return [0, 2];
+      default: return [];
     }
   };
   
@@ -60,22 +56,22 @@ function validateFormData(formData) {
     // Au moins une réservation doit être sélectionnée
     const hasAnyReservation = formData.reservations.some(res => res.option);
     if (!hasAnyReservation) {
-      errors.push("Veuillez sélectionner au moins une option de réservation pour un jour");
+        errors.push("Veuillez sélectionner au moins une option de réservation pour un jour.");
     }
     
     // Chaque jour sélectionné doit avoir une option de repas
     formData.reservations.forEach((res, index) => {
-      if (res.option && !res.mealOption) {
-        errors.push(`Veuillez sélectionner une option de repas pour ${res.day}`);
-      }
+        if (res.option && !res.mealOption) {
+            errors.push(`Veuillez sélectionner une option de repas pour ${res.day.split(" - ")[0]}`);
+        }
     });
   } else {
     // Si pass 2 jours sélectionné, vérifier que les options de repas sont choisies
-    const selectedDays = daysToDisplay();
-    selectedDays.forEach(dayIndex => {
-      if (!formData.reservations[dayIndex].mealOption) {
-        errors.push(`Veuillez sélectionner une option de repas pour ${formData.reservations[dayIndex].day}`);
-      }
+    const selectedDaysIndexes = daysToDisplay();
+    selectedDaysIndexes.forEach(dayIndex => {
+        if (!formData.reservations[dayIndex].mealOption) {
+            errors.push(`Veuillez sélectionner une option de repas pour ${formData.reservations[dayIndex].day.split(" - ")[0]} (Pass 2 jours)`);
+        }
     });
   }
   
@@ -99,10 +95,7 @@ export async function POST(request) {
     const validationErrors = validateFormData(formData);
     
     if (validationErrors.length > 0) {
-      return NextResponse.json({ 
-        success: false, 
-        errors: validationErrors 
-      }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Erreurs de validation.", errors: validationErrors }, { status: 400 });
     }
     
     // Créer un ID unique pour la réservation
@@ -112,46 +105,16 @@ export async function POST(request) {
     const reservation = {
       ...formData,
       createdAt: new Date().toISOString(),
-      status: "pending", // pending, paid, cancelled
+      status: "pending", // Statut initial
       reservationId,
     };
     
     // Préparer les données pour n8n
     const n8nData = {
-      reservation: {
-        ...reservation
-      }
+      ...reservation,
+      paymentLink: `${request.nextUrl.origin}/pay?reservationId=${reservationId}`
     };
-    
-    // Vérifier que l'endpoint n8n est configuré
-    if (!n8nEndpoint) {
-      console.error("N8N_ENDPOINT n'est pas défini dans les variables d'environnement");
-      return NextResponse.json({ 
-        success: false, 
-        message: "Configuration du système incomplète. Veuillez contacter l'administrateur." 
-      }, { status: 500 });
-    }
-    
-    // Envoyer les données à n8n AVANT d'insérer dans MongoDB
-    const n8nResponse = await fetch(n8nEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(n8nData),
-    });
-    
-    if (!n8nResponse.ok) {
-      const errorData = await n8nResponse.text();
-      console.error(`Erreur n8n: ${n8nResponse.status} - ${errorData}`);
-      return NextResponse.json({ 
-        success: false, 
-        message: "Impossible de finaliser la réservation. Veuillez réessayer ultérieurement." 
-      }, { status: 502 }); // Bad Gateway
-    }
-    
-    // N8N a bien reçu les données, maintenant on peut insérer dans MongoDB
-    
+
     // Se connecter à MongoDB
     client = new MongoClient(uri);
     await client.connect();
@@ -160,24 +123,24 @@ export async function POST(request) {
     // Insérer la réservation dans la base de données
     await db.collection('reservations').insertOne(reservation);
     
-    // Fermer la connexion MongoDB
-    // await client.close(); // Déplacé dans le bloc finally
-    // client = null; // Déplacé dans le bloc finally
+    // Envoyer les données à n8n (de manière asynchrone, ne pas bloquer la réponse)
+    if (n8nEndpoint) {
+      fetch(n8nEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(n8nData),
+      }).catch(err => console.error("Erreur lors de l'envoi à n8n:", err));
+    }
     
-    // Renvoyer une réponse réussie
-    return NextResponse.json({ 
-      success: true, 
-      message: "Réservation enregistrée avec succès",
-      reservationId: reservationId
-    });
+    // Renvoyer une réponse de succès avec l'ID de réservation
+    return NextResponse.json({ success: true, message: "Réservation créée avec succès!", reservationId: reservationId, data: reservation });
     
   } catch (error) {
     console.error('Erreur API (POST):', error);
-    
-    return NextResponse.json({ 
-      success: false, 
-      message: "Une erreur s'est produite lors du traitement de votre réservation" 
-    }, { status: 500 });
+    if (error instanceof SyntaxError) { // Erreur de parsing JSON
+        return NextResponse.json({ success: false, message: "Corps de la requête JSON invalide." }, { status: 400 });
+    }
+    return NextResponse.json({ success: false, message: "Une erreur s'est produite lors de la création de la réservation." }, { status: 500 });
   } finally {
     // S'assurer que la connexion MongoDB est fermée même en cas d'erreur
     if (client) {
@@ -186,38 +149,44 @@ export async function POST(request) {
   }
 }
 
-// GET - Récupérer toutes les réservations (sécurisé par clé API)
+// GET - Récupérer toutes les réservations (sécurisé par token JWT via cookie)
 export async function GET(request) {
   let client = null;
   try {
-    // Vérifier la clé API
-    const providedApiKey = request.headers.get('x-api-key'); // Ou 'Authorization': 'Bearer VOTRE_CLE'
-    if (!adminApiKey) {
-        console.error("ADMIN_API_KEY n'est pas configurée côté serveur.");
-        return NextResponse.json({ success: false, message: "Configuration serveur incorrecte." }, { status: 500 });
-    }
-    if (providedApiKey !== adminApiKey) {
-      return NextResponse.json({ success: false, message: "Accès non autorisé." }, { status: 401 });
+    const cookieStore = cookies();
+    const token = cookieStore.get('admin_token')?.value;
+
+    if (!JWT_SECRET) {
+      console.error("JWT_SECRET n'est pas défini pour l'API GET /api.");
+      return NextResponse.json({ success: false, message: "Erreur de configuration serveur." }, { status: 500 });
     }
 
-    // Se connecter à MongoDB
+    if (!token) {
+      return NextResponse.json({ success: false, message: "Accès non autorisé. Token manquant." }, { status: 401 });
+    }
+
+    try {
+      jwt.verify(token, JWT_SECRET); // Vérifie le token
+    } catch (e) {
+      return NextResponse.json({ success: false, message: "Accès non autorisé. Token invalide ou expiré." }, { status: 403 });
+    }
+
+    // Si le token est valide, continuer pour récupérer les données
     client = new MongoClient(uri);
     await client.connect();
     const db = client.db(dbName);
 
-    // Récupérer toutes les réservations
-    const reservations = await db.collection('reservations').find({}).toArray();
-
-    // Renvoyer les réservations
+    const reservations = await db.collection('reservations').find({}).sort({ createdAt: -1 }).toArray();
+    
     return NextResponse.json({ success: true, data: reservations });
 
   } catch (error) {
     console.error('Erreur API (GET):', error);
     return NextResponse.json({ success: false, message: "Une erreur s'est produite lors de la récupération des réservations." }, { status: 500 });
   } finally {
-    // S'assurer que la connexion MongoDB est fermée même en cas d'erreur
     if (client) {
       await client.close().catch(err => console.error('Erreur lors de la fermeture de la connexion MongoDB (GET):', err));
     }
   }
 }
+
