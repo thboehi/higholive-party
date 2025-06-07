@@ -203,15 +203,21 @@ export default function AdminPage() {
     }
   }, [reservations, isAuthenticated]);
 
-  const updateReservationStatus = async (reservationId, newStatus) => {
+  const updateReservationStatus = async (reservationId, newStatus, isInvited = false) => {
     if (!isAuthenticated) return;
     setError(null);
     try {
+      const requestBody = { status: newStatus };
+      if (isInvited) {
+        requestBody.isInvited = true; // Indique au serveur que c'est un invité
+      }
+
       const response = await fetch(`/api/${reservationId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify(requestBody),
       });
+      
       if (!response.ok) {
         if (response.status === 401 || response.status === 403) {
           setIsAuthenticated(false);
@@ -220,12 +226,22 @@ export default function AdminPage() {
         const errorData = await response.json().catch(() => ({ message: 'Erreur lors de la mise à jour du statut' }));
         throw new Error(errorData.message || 'Erreur lors de la mise à jour du statut');
       }
-      // Mettre à jour la liste des réservations pour refléter le changement de statut
-      const updatedReservations = reservations.map(reservation =>
-        reservation.reservationId === reservationId ? { ...reservation, status: newStatus } : reservation
-      );
+      
+      // Mettre à jour la liste des réservations pour refléter le changement
+      const updatedReservations = reservations.map(reservation => {
+        if (reservation.reservationId === reservationId) {
+          const updated = { ...reservation, status: newStatus };
+          if (isInvited) {
+            updated.totalPrice = 0;
+            updated.isInvited = true;
+          }
+          return updated;
+        }
+        return reservation;
+      });
+      
       setReservations(updatedReservations);
-      // Recalculer le résumé après la mise à jour du statut
+      // Recalculer le résumé après la mise à jour
       setSummary(calculateSummary(updatedReservations));
 
     } catch (err) {
@@ -433,7 +449,12 @@ export default function AdminPage() {
                 <div className="mt-4 md:mt-0 md:text-right">
                     <p className="text-lg">Statut: <span className={getStatusStyle(reservation.status)}>{reservation.status.toUpperCase()}</span></p>
                     <p className="text-gray-400 text-sm">Créée le: {new Date(reservation.createdAt).toLocaleDateString()}</p>
-                    <p className="text-xl font-semibold text-white mt-1">{reservation.totalPrice.toFixed(2)} CHF</p>
+                    <p className="text-xl font-semibold text-white mt-1">
+                      {reservation.totalPrice.toFixed(2)} CHF
+                      {reservation.isInvited && (
+                        <span className="text-purple-400 text-sm ml-2 font-normal">(Invité)</span>
+                      )}
+                    </p>
                 </div>
               </div>
 
@@ -518,7 +539,18 @@ export default function AdminPage() {
                         Marquer Payé
                       </button>
                     )}
-                    {reservation.status !== 'pending' && (
+                    
+                    {/* Nouveau bouton Invité */}
+                    {!reservation.isInvited && (
+                      <button 
+                        onClick={() => updateReservationStatus(reservation.reservationId, 'paid', true)}
+                        className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-md shadow-sm transition-colors cursor-pointer"
+                      >
+                        Marquer comme Invité
+                      </button>
+                    )}
+                    
+                    {reservation.status !== 'pending' && !reservation.isInvited && (
                       <button 
                         onClick={() => updateReservationStatus(reservation.reservationId, 'pending')}
                         className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-600 text-black text-xs font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 cursor-pointer"
@@ -527,6 +559,7 @@ export default function AdminPage() {
                         Marquer En Attente
                       </button>
                     )}
+                    
                     {reservation.status !== 'deleted' && (
                       <button 
                         onClick={() => updateReservationStatus(reservation.reservationId, 'deleted')}
