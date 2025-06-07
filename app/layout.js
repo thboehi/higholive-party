@@ -70,6 +70,16 @@ export const metadata = {
     apple: "/apple-touch-icon.png",
     // autres tailles si nécessaire
   },
+  other: {
+    'theme-color': '#000',
+    'color-scheme': 'dark',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+    'apple-mobile-web-app-title': '30 ANS BEN & LULU',
+    'application-name': '30 ANS BEN & LULU',
+    'msapplication-TileColor': '#d4af37',
+    'msapplication-config': '/browserconfig.xml',
+  },
   
   // Manifest pour PWA (si applicable)
   // manifest: "/site.webmanifest",

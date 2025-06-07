@@ -1,22 +1,139 @@
 "use client"
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import ClickSpark from "../../components/ClickSpark";
+
+// Enregistrer le plugin ScrollTrigger
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function Home() {
   const [lastReservationId, setLastReservationId] = useState(null);
-  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef(null);
+  const titleRef = useRef(null);
+  const headerRef = useRef(null);
+  const sectionsRef = useRef([]);
+  const particlesRef = useRef(null);
+  const ornamentRef = useRef(null);
 
   useEffect(() => {
-    setTimeout(() => setIsVisible(true), 200);
-    
     if (typeof window !== 'undefined') {
       const storedId = localStorage.getItem('lastReservationId');
       if (storedId) {
         setLastReservationId(storedId);
       }
     }
+
+    // Timeline principale pour l'entrée
+    const tl = gsap.timeline();
+    
+    // Animation d'entrée du header
+    tl.fromTo(headerRef.current, 
+      { opacity: 0, y: 100, scale: 0.8 },
+      { opacity: 1, y: 0, scale: 1, duration: 1.5, ease: "power3.out" }
+    )
+    .fromTo(ornamentRef.current.children,
+      { opacity: 0, scale: 0, rotation: -180 },
+      { opacity: 1, scale: 1, rotation: 0, duration: 0.8, stagger: 0.1, ease: "back.out(1.7)" },
+      "-=1"
+    )
+    // Animation spécifique pour les textes du titre (pas les ornements)
+    .fromTo(titleRef.current.querySelectorAll('.title-text'),
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 1, stagger: 0.2, ease: "power2.out" },
+      "-=0.5"
+    );
+
+    // Animations pour les sections au scroll
+    sectionsRef.current.forEach((section, index) => {
+      if (section) {
+        gsap.fromTo(section,
+          { opacity: 0, y: 100, scale: 0.9 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 80%",
+              end: "bottom 20%",
+              toggleActions: "play none none reverse"
+            }
+          }
+        );
+
+        // Animation des éléments internes
+        const internalElements = section.querySelectorAll('h2, h3, p, div[class*="border"]');
+        gsap.fromTo(internalElements,
+          { opacity: 0, y: 30 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 70%",
+              toggleActions: "play none none reverse"
+            }
+          }
+        );
+      }
+    });
+
+    // Animation continue des particules
+    const animateParticles = () => {
+      const particles = particlesRef.current?.children;
+      if (particles) {
+        Array.from(particles).forEach((particle, index) => {
+          gsap.to(particle, {
+            y: `random(-20, -100)`,
+            x: `random(-50, 50)`,
+            rotation: `random(0, 360)`,
+            opacity: `random(0.3, 1)`,
+            duration: `random(3, 8)`,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+            delay: index * 0.2
+          });
+        });
+      }
+    };
+
+    // Démarrer l'animation des particules après un délai
+    setTimeout(animateParticles, 1000);
+
+    // Animation de hover pour les éléments interactifs
+    const buttons = document.querySelectorAll('a[class*="border"], a[class*="bg-gradient"]');
+    buttons.forEach(button => {
+      button.addEventListener('mouseenter', () => {
+        gsap.to(button, { scale: 1.05, duration: 0.3, ease: "power2.out" });
+      });
+      button.addEventListener('mouseleave', () => {
+        gsap.to(button, { scale: 1, duration: 0.3, ease: "power2.out" });
+      });
+    });
+
+    // Animation des ornements en continu
+    gsap.to(".floating-ornament:not(.corner-ornament)", {
+      rotation: 360,
+      duration: 20,
+      ease: "none",
+      repeat: -1
+    });
+
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    };
   }, []);
 
   return (
@@ -28,66 +145,76 @@ export default function Home() {
         sparkCount={12}
         duration={600}
       >
-        <div className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 text-slate-100 relative overflow-hidden">
+        <div ref={containerRef} className="min-h-screen bg-gradient-to-b from-gray-950 via-black to-gray-950 text-slate-100 relative overflow-hidden">
           
-          {/* Art Deco Background Pattern */}
-          <div className="absolute inset-0 opacity-15">
-            <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-px h-full bg-gradient-to-b from-transparent via-amber-400 to-transparent"></div>
-            <div className="absolute top-1/2 left-0 transform -translate-y-1/2 w-full h-px bg-gradient-to-r from-transparent via-amber-400 to-transparent"></div>
+          {/* Enhanced Art Deco Background Pattern avec parallaxe */}
+          <div className="absolute inset-0 opacity-15 parallax-bg">
+           
             
-            {/* Enhanced decorative corners with multiple layers */}
-            <div className="absolute top-6 left-6 w-20 h-20">
+            {/* Enhanced decorative corners avec animations */}
+            <div className="absolute top-6 left-6 w-20 h-20 floating-ornament corner-ornament">
               <div className="absolute inset-0 border-l-2 border-t-2 border-amber-400 rounded-tl-lg"></div>
               <div className="absolute inset-2 border-l border-t border-amber-300 rounded-tl-lg"></div>
-              <div className="absolute top-4 left-4 w-2 h-2 bg-amber-400 rounded-full"></div>
+              <div className="absolute top-4 left-4 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute top-6 right-6 w-20 h-20">
+            <div className="absolute top-6 right-6 w-20 h-20 floating-ornament corner-ornament">
               <div className="absolute inset-0 border-r-2 border-t-2 border-amber-400 rounded-tr-lg"></div>
               <div className="absolute inset-2 border-r border-t border-amber-300 rounded-tr-lg"></div>
-              <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full"></div>
+              <div className="absolute top-4 right-4 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute bottom-6 left-6 w-20 h-20">
+            <div className="absolute bottom-28 left-6 w-20 h-20 floating-ornament corner-ornament">
               <div className="absolute inset-0 border-l-2 border-b-2 border-amber-400 rounded-bl-lg"></div>
               <div className="absolute inset-2 border-l border-b border-amber-300 rounded-bl-lg"></div>
-              <div className="absolute bottom-4 left-4 w-2 h-2 bg-amber-400 rounded-full"></div>
+              <div className="absolute bottom-4 left-4 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
             </div>
-            <div className="absolute bottom-6 right-6 w-20 h-20">
+            <div className="absolute bottom-28 right-6 w-20 h-20 floating-ornament corner-ornament">
               <div className="absolute inset-0 border-r-2 border-b-2 border-amber-400 rounded-br-lg"></div>
               <div className="absolute inset-2 border-r border-b border-amber-300 rounded-br-lg"></div>
-              <div className="absolute bottom-4 right-4 w-2 h-2 bg-amber-400 rounded-full"></div>
+              <div className="absolute bottom-4 right-4 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
             </div>
 
             {/* Additional geometric patterns */}
-            <div className="absolute top-1/4 left-16">
+            <div className="absolute top-1/4 left-16 floating-ornament">
               <div className="w-8 h-8 border border-amber-400/30 rotate-45 flex items-center justify-center">
                 <div className="w-3 h-3 bg-amber-400/20"></div>
               </div>
             </div>
-            <div className="absolute top-3/4 right-16">
+            <div className="absolute top-3/4 right-16 floating-ornament">
               <div className="w-8 h-8 border border-amber-400/30 rotate-45 flex items-center justify-center">
                 <div className="w-3 h-3 bg-amber-400/20"></div>
               </div>
             </div>
           </div>
 
-          {/* Enhanced floating golden particles */}
-          <div className="absolute inset-0">
-            <div className="absolute top-20 left-16 w-1 h-1 bg-amber-400 rounded-full animate-pulse opacity-70"></div>
-            <div className="absolute top-40 right-20 w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse opacity-50" style={{animationDelay: '1s'}}></div>
-            <div className="absolute bottom-32 left-24 w-1 h-1 bg-amber-300 rounded-full animate-pulse opacity-60" style={{animationDelay: '2s'}}></div>
-            <div className="absolute bottom-60 right-32 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-pulse opacity-40" style={{animationDelay: '0.5s'}}></div>
-            <div className="absolute top-32 left-1/3 w-0.5 h-0.5 bg-amber-500 rounded-full animate-pulse opacity-50" style={{animationDelay: '1.5s'}}></div>
-            <div className="absolute bottom-40 right-1/3 w-0.5 h-0.5 bg-yellow-500 rounded-full animate-pulse opacity-60" style={{animationDelay: '2.5s'}}></div>
+          {/* Advanced floating golden particles */}
+          <div ref={particlesRef} className="absolute inset-0 pointer-events-none">
+            {/* Particules principales */}
+            <div className="absolute top-20 left-16 w-2 h-2 bg-gradient-to-r from-amber-400 to-yellow-400 rounded-full opacity-70"></div>
+            <div className="absolute top-40 right-20 w-3 h-3 bg-gradient-to-r from-yellow-400 to-amber-300 rounded-full opacity-50"></div>
+            <div className="absolute bottom-32 left-24 w-1.5 h-1.5 bg-gradient-to-r from-amber-300 to-yellow-300 rounded-full opacity-60"></div>
+            <div className="absolute bottom-60 right-32 w-2.5 h-2.5 bg-gradient-to-r from-yellow-300 to-amber-400 rounded-full opacity-40"></div>
+            <div className="absolute top-32 left-1/3 w-1 h-1 bg-amber-500 rounded-full opacity-50"></div>
+            <div className="absolute bottom-40 right-1/3 w-1 h-1 bg-yellow-500 rounded-full opacity-60"></div>
+            
+            {/* Particules secondaires */}
+            <div className="absolute top-64 left-32 w-1 h-1 bg-amber-400 rounded-full opacity-30"></div>
+            <div className="absolute top-80 right-40 w-1.5 h-1.5 bg-yellow-400 rounded-full opacity-40"></div>
+            <div className="absolute bottom-80 left-40 w-2 h-2 bg-amber-300 rounded-full opacity-35"></div>
+            <div className="absolute bottom-64 right-24 w-1 h-1 bg-yellow-300 rounded-full opacity-45"></div>
+            
+            {/* Particules flottantes complexes */}
+            <div className="absolute top-96 left-1/4 w-4 h-4 border border-amber-400/20 rounded-full opacity-25"></div>
+            <div className="absolute bottom-96 right-1/4 w-6 h-6 border border-yellow-400/15 rounded-full opacity-20"></div>
           </div>
 
           {/* Main Content */}
           <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
             
             {/* Header with Enhanced Ornaments */}
-            <header className={`text-center mb-16 transition-all duration-1200 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <header ref={headerRef} className="text-center mb-16 opacity-0">
               
               {/* Elaborate top ornament */}
-              <div className="flex justify-center items-center mb-12">
+              <div ref={ornamentRef} className="flex justify-center items-center mb-12">
                 <div className="flex items-center">
                   <div className="w-16 h-px bg-gradient-to-r from-transparent to-amber-400"></div>
                   <div className="mx-2 w-1 h-1 bg-amber-400 rounded-full"></div>
@@ -101,60 +228,60 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Enhanced title with multiple decorative layers */}
+              {/* Enhanced title avec effets GSAP */}
               <div className="relative">
-                {/* Background decorative elements for title */}
+                {/* Background decorative elements - gardent leur opacité */}
                 <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 w-64 h-1 bg-gradient-to-r from-transparent via-amber-400/30 to-transparent"></div>
                 <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 w-64 h-1 bg-gradient-to-r from-transparent via-amber-400/30 to-transparent"></div>
                 
-                {/* Side ornaments */}
+                {/* Side ornaments - gardent leur opacité */}
                 <div className="absolute top-1/2 -left-12 transform -translate-y-1/2 hidden lg:block">
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="w-3 h-3 border border-amber-400 rotate-45"></div>
+                    <div className="w-3 h-3 border border-amber-400 rotate-45 floating-ornament"></div>
                     <div className="w-1 h-16 bg-gradient-to-b from-amber-400 to-transparent"></div>
-                    <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                    <div className="w-2 h-2 bg-amber-400 rounded-full floating-ornament"></div>
                   </div>
                 </div>
                 <div className="absolute top-1/2 -right-12 transform -translate-y-1/2 hidden lg:block">
                   <div className="flex flex-col items-center space-y-2">
-                    <div className="w-3 h-3 border border-amber-400 rotate-45"></div>
+                    <div className="w-3 h-3 border border-amber-400 rotate-45 floating-ornament"></div>
                     <div className="w-1 h-16 bg-gradient-to-b from-amber-400 to-transparent"></div>
-                    <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                    <div className="w-2 h-2 bg-amber-400 rounded-full floating-ornament"></div>
                   </div>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-amber-100 mb-6 leading-tight tracking-wide relative">
-                  <span className="relative">
+                <div ref={titleRef} className="text-3xl sm:text-4xl lg:text-6xl font-serif font-bold text-amber-100 mb-6 leading-tight tracking-wide relative">
+                  <div className="relative title-text">
                     GRAND ANNIVERSAIRE
-                    {/* Subtle glow effect */}
-                    <div className="absolute inset-0 text-amber-400/20 blur-sm">GRAND ANNIVERSAIRE</div>
-                  </span>
+                    {/* Effet de glow - reste visible */}
+                    <div className="absolute inset-0 text-amber-400/20 blur-sm pointer-events-none">GRAND ANNIVERSAIRE</div>
+                  </div>
                   <br />
-                  <span className="text-amber-400 text-4xl sm:text-5xl lg:text-7xl relative">
+                  <div className="text-amber-400 text-4xl sm:text-5xl lg:text-7xl relative title-text">
                     30 ANS
-                    <div className="absolute inset-0 text-yellow-300/30 blur-sm">30 ANS</div>
-                  </span>
+                    <div className="absolute inset-0 text-yellow-300/30 blur-sm pointer-events-none">30 ANS</div>
+                  </div>
                   <br />
-                  <span className="text-2xl sm:text-3xl lg:text-5xl font-light relative">
+                  <div className="text-2xl sm:text-3xl lg:text-5xl font-light relative title-text">
                     Ben & Lulu
-                    <div className="absolute inset-0 text-amber-300/20 blur-sm">Ben & Lulu</div>
-                  </span>
-                </h1>
+                    <div className="absolute inset-0 text-amber-300/20 blur-sm pointer-events-none">Ben & Lulu</div>
+                  </div>
+                </div>
               </div>
 
               {/* Enhanced decorative divider */}
               <div className="flex justify-center items-center my-12">
                 <div className="flex items-center space-x-2">
                   <div className="w-4 h-px bg-amber-400"></div>
-                  <div className="w-1.5 h-1.5 border border-amber-400 rotate-45"></div>
+                  <div className="w-1.5 h-1.5 border border-amber-400 rotate-45 floating-ornament"></div>
                   <div className="w-8 h-px bg-amber-400"></div>
                   <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
-                  <div className="w-4 h-4 border-2 border-amber-400 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 border-2 border-amber-400 rounded-full flex items-center justify-center floating-ornament">
                     <div className="w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
                   </div>
                   <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
                   <div className="w-8 h-px bg-amber-400"></div>
-                  <div className="w-1.5 h-1.5 border border-amber-400 rotate-45"></div>
+                  <div className="w-1.5 h-1.5 border border-amber-400 rotate-45 floating-ornament"></div>
                   <div className="w-4 h-px bg-amber-400"></div>
                 </div>
               </div>
@@ -172,7 +299,7 @@ export default function Home() {
               </div>
 
               {/* Discrete reservation button */}
-              <div className={`mt-12 transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+              <div className="mt-12">
                 <Link href="/reserver" legacyBehavior>
                   <a className="inline-block border border-amber-400/50 hover:border-amber-400 
                     text-amber-300 hover:text-amber-200 
@@ -191,10 +318,8 @@ export default function Home() {
             <main className="space-y-12">
               
               {/* Welcome section */}
-              <section className={`transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <section ref={el => sectionsRef.current[0] = el} className="opacity-0">
                 <div className="border border-amber-400/30 bg-gradient-to-br from-gray-900/50 to-black/50 backdrop-blur-sm p-8 sm:p-12">
-                  
-                  {/* Section ornament */}
                   <div className="flex justify-center mb-8">
                     <div className="w-8 h-px bg-amber-400"></div>
                     <div className="mx-2 w-1.5 h-1.5 bg-amber-400 rounded-full"></div>
@@ -214,7 +339,7 @@ export default function Home() {
               </section>
 
               {/* Formulas section */}
-              <section className={`transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <section ref={el => sectionsRef.current[1] = el} className="opacity-0">
                 <div className="text-center mb-10">
                   <h3 className="text-2xl sm:text-3xl font-serif text-amber-400 mb-4">Formules Proposées</h3>
                   <div className="flex justify-center">
@@ -225,8 +350,8 @@ export default function Home() {
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="border border-amber-400/40 bg-gray-900/30 p-8 hover:border-amber-400/60 transition-all duration-300 hover:bg-gray-900/50 group">
                     <div className="text-center">
-                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center">
-                        <div className="w-6 h-6 bg-amber-400/20"></div>
+                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center floating-ornament">
+                        <div className="w-6 h-6 bg-amber-400/20 border-amber-400 border"></div>
                       </div>
                       <h4 className="text-xl font-serif text-amber-300 mb-4">Soirée Exclusive</h4>
                       <p className="text-slate-300 font-light leading-relaxed">
@@ -237,8 +362,8 @@ export default function Home() {
 
                   <div className="border border-amber-400/40 bg-gray-900/30 p-8 hover:border-amber-400/60 transition-all duration-300 hover:bg-gray-900/50 group">
                     <div className="text-center">
-                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center">
-                        <div className="w-6 h-6 bg-amber-400/30"></div>
+                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center floating-ornament">
+                        <div className="w-6 h-6 bg-amber-400/30 border-amber-400 border"></div>
                       </div>
                       <h4 className="text-xl font-serif text-amber-300 mb-4">Séjour Complet</h4>
                       <p className="text-slate-300 font-light leading-relaxed">
@@ -250,7 +375,7 @@ export default function Home() {
               </section>
 
               {/* Program section */}
-              <section className={`transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <section ref={el => sectionsRef.current[2] = el} className="opacity-0">
                 <div className="border border-amber-400/30 bg-gradient-to-br from-gray-900/50 to-black/50 p-8 sm:p-12">
                   <div className="text-center mb-8">
                     <h3 className="text-2xl sm:text-3xl font-serif text-amber-400 mb-4">Programme de la Soirée</h3>
@@ -261,7 +386,7 @@ export default function Home() {
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
                         <span className="text-amber-400 text-xl">♪</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Musique Live</h4>
@@ -269,7 +394,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
                         <span className="text-amber-400 text-xl">✦</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Gastronomie</h4>
@@ -277,7 +402,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
                         <span className="text-amber-400 text-xl">◊</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Spiritueux</h4>
@@ -285,7 +410,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
                         <span className="text-amber-400 text-xl">✧</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Ambiance</h4>
@@ -302,7 +427,7 @@ export default function Home() {
               </section>
 
               {/* Call to action */}
-              <section className={`transition-all duration-1000 delay-900 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+              <section ref={el => sectionsRef.current[3] = el} className="opacity-0">
                 <div className="border border-amber-400/50 bg-gradient-to-r from-amber-900/20 to-yellow-900/20 p-8 sm:p-12 text-center">
                   <h3 className="text-2xl sm:text-3xl font-serif text-amber-200 mb-6">
                     Une Invitation Exclusive
@@ -318,7 +443,7 @@ export default function Home() {
               </section>
 
               {/* Final message */}
-              <div className={`transition-all duration-1000 delay-1100 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} text-center border border-amber-400/20 bg-gray-900/30 p-8`}>
+              <div ref={el => sectionsRef.current[4] = el} className="opacity-0 text-center border border-amber-400/20 bg-gray-900/30 p-8">
                 <p className="text-xl font-serif text-amber-300 italic">
                   "Un week-end d'exception vous attend dans les hauteurs, 
                   où l'amitié et la célébration se rencontrent dans un cadre sublime."
@@ -327,13 +452,13 @@ export default function Home() {
             </main>
 
             {/* Action buttons */}
-            <div className={`transition-all duration-1000 delay-1300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12`}>
+            <div ref={el => sectionsRef.current[5] = el} className="opacity-0 flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12">
               <Link href="/reserver" legacyBehavior>
                 <a className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 
                   text-black py-4 px-12 font-serif font-medium text-lg tracking-widest
                   transition-all duration-300 
                   focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-black
-                  text-center w-full sm:w-auto transform hover:scale-105 shadow-lg hover:shadow-amber-500/30
+                  text-center w-full sm:w-auto shadow-lg hover:shadow-amber-500/30
                   border border-amber-500">
                   RÉSERVER MAINTENANT
                 </a>
@@ -344,7 +469,7 @@ export default function Home() {
                   <a className="border border-amber-400/50 hover:border-amber-400 text-amber-300 hover:text-amber-200 
                     py-4 px-12 font-serif font-light text-lg tracking-widest
                     transition-all duration-300 hover:bg-amber-400/10
-                    text-center w-full sm:w-auto transform hover:scale-105">
+                    text-center w-full sm:w-auto">
                     STATUT RÉSERVATION
                   </a>
                 </Link>
