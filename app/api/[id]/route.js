@@ -33,7 +33,7 @@ function calculateOriginalPrice(reservation) {
 export async function GET(request, { params }) {
   let client = null;
   try {
-    const { id } = params; // Récupère l'ID de la réservation depuis les paramètres de l'URL
+    const { id } = await params; // Récupère l'ID de la réservation depuis les paramètres de l'URL
 
     if (!id) {
       return NextResponse.json({ success: false, message: "L'identifiant de la réservation est manquant." }, { status: 400 });
@@ -90,7 +90,7 @@ export async function PUT(request, { params }) {
     }
     // Fin de la vérification du token JWT
 
-    const { id } = params; // Récupère l'ID de la réservation depuis les paramètres de l'URL
+    const { id } = await params; // Récupère l'ID de la réservation depuis les paramètres de l'URL
     const body = await request.json(); // Récupère le corps de la requête
     const { status, isInvited } = body;
 
