@@ -512,7 +512,7 @@ export default function Home() {
             </main>
 
             {/* Action buttons */}
-            <div ref={el => sectionsRef.current[5] = el} className="opacity-0 flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12">
               <Link href="/reserver" legacyBehavior>
                 <a className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 
                   text-black py-4 px-12 font-serif font-medium text-lg tracking-widest
