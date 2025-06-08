@@ -19,7 +19,6 @@ export default function Home() {
   const sectionsRef = useRef([]);
   const particlesRef = useRef(null);
   const ornamentRef = useRef(null);
-  const footerRef = useRef(null); // Nouveau ref pour le footer
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -49,9 +48,9 @@ export default function Home() {
       "-=0.5"
     );
 
-    // Animations pour les sections au scroll (sauf les 2 dernières)
+    // Animations pour les sections au scroll
     sectionsRef.current.forEach((section, index) => {
-      if (section && index < sectionsRef.current.length - 2) { // Exclure les 2 derniers éléments
+      if (section) {
         gsap.fromTo(section,
           { opacity: 0, y: 100, scale: 0.9 },
           {
@@ -88,101 +87,6 @@ export default function Home() {
         );
       }
     });
-
-    // Animation spéciale pour les boutons d'action (avant-dernier élément)
-    const buttonsSection = sectionsRef.current[sectionsRef.current.length - 1];
-    if (buttonsSection) {
-      gsap.fromTo(buttonsSection,
-        { opacity: 0, y: 50 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power2.out",
-          scrollTrigger: {
-            trigger: buttonsSection,
-            start: "top 95%", // Plus tardif pour s'assurer qu'il s'affiche
-            toggleActions: "play none none reverse"
-          }
-        }
-      );
-    }
-
-    // Animation spéciale pour le footer - TOUJOURS visible en fin de page
-    const footerAnimation = () => {
-      if (footerRef.current) {
-        const text = footerRef.current.querySelector('.footer-text');
-        const link = footerRef.current.querySelector('.footer-link');
-        
-        // Démarrer avec opacity 0
-        gsap.set([text, link], { opacity: 0 });
-        
-        // Animation qui se déclenche avec un ScrollTrigger plus agressif
-        const footerTrigger = ScrollTrigger.create({
-          trigger: footerRef.current,
-          start: "top bottom", // Dès que le footer entre dans la fenêtre
-          end: "bottom bottom",
-          onEnter: () => {
-            gsap.to(text, {
-              opacity: 1,
-              duration: 1,
-              ease: "power2.out"
-            });
-            gsap.to(link, {
-              opacity: 1,
-              x: 0,
-              duration: 0.8,
-              ease: "back.out(1.7)",
-              delay: 0.5
-            });
-          },
-          onLeave: () => {
-            // Ne pas masquer en sortant
-          },
-          onEnterBack: () => {
-            gsap.to([text, link], {
-              opacity: 1,
-              duration: 0.5,
-              ease: "power2.out"
-            });
-          }
-        });
-
-        // Forcer l'animation si on est déjà en bas de page
-        setTimeout(() => {
-          const scrollPosition = window.scrollY + window.innerHeight;
-          const documentHeight = document.documentElement.scrollHeight;
-          
-          if (scrollPosition >= documentHeight - 100) { // Si on est proche du bas
-            gsap.to([text, link], {
-              opacity: 1,
-              x: 0,
-              duration: 1,
-              ease: "power2.out"
-            });
-          }
-        }, 1000);
-
-        // Animation au hover
-        link.addEventListener('mouseenter', () => {
-          gsap.to(link, {
-            scale: 1.1,
-            textShadow: "0 0 15px #d4af37, 0 0 25px #d4af37, 0 0 35px #d4af37",
-            duration: 0.3,
-            ease: "power2.out"
-          });
-        });
-
-        link.addEventListener('mouseleave', () => {
-          gsap.to(link, {
-            scale: 1,
-            textShadow: "none",
-            duration: 0.3,
-            ease: "power2.out"
-          });
-        });
-      }
-    };
 
     // Animation continue des particules
     const animateParticles = () => {
@@ -225,9 +129,6 @@ export default function Home() {
       ease: "none",
       repeat: -1
     });
-
-    // Démarrer l'animation du footer
-    setTimeout(footerAnimation, 500);
 
     return () => {
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
@@ -388,22 +289,22 @@ export default function Home() {
                   <p className="text-xl sm:text-2xl text-amber-200 font-light tracking-widest">
                     CHALET BOURGEOISIAL DES FLANS
                   </p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-col md:flex-row">
                     <a
                       href="https://maps.app.goo.gl/Z9c6dGAj9RswH26Y6"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 border border-amber-400/50 hover:border-amber-400 
+                      className="inline-flex items-center justify-center gap-2 border border-amber-400/50 hover:border-amber-400 
                         text-amber-300 hover:text-amber-200 
-                        px-3 py-1.5 font-light text-xs tracking-wider
+                        px-4 py-2 font-light text-xs tracking-wider
                         transition-all duration-300 
                         hover:bg-amber-400/10 hover:shadow-lg hover:shadow-amber-400/20
-                        relative overflow-hidden group"
+                        relative overflow-hidden group w-full md:w-32 h-12"
                     >
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
-                      <span className="relative z-10">GOOGLE MAPS</span>
+                      <span className="relative z-10 text-center leading-tight">GOOGLE MAPS</span>
                       <div className="absolute inset-0 bg-amber-400/5 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                     </a>
 
@@ -411,17 +312,17 @@ export default function Home() {
                       href="https://maps.apple.com/place?address=Route%20d'Arbaz-Anz%C3%A8re%2040,%201966%20Fortunau%20(Ayent),%20Suisse&coordinate=46.291401,7.415138&name=Chalet%20bourgeoisial%20des%20Flans&place-id=ICC7DB0D3C3CD5A9B&map=h"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 border border-amber-400/50 hover:border-amber-400 
+                      className="inline-flex items-center justify-center gap-2 border border-amber-400/50 hover:border-amber-400 
                         text-amber-300 hover:text-amber-200 
-                        px-3 py-1.5 font-light text-xs tracking-wider
+                        px-4 py-2 font-light text-xs tracking-wider
                         transition-all duration-300 
                         hover:bg-amber-400/10 hover:shadow-lg hover:shadow-amber-400/20
-                        relative overflow-hidden group"
+                        relative overflow-hidden group w-full md:w-32 h-12"
                     >
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
-                      <span className="relative z-10">APPLE PLANS</span>
+                      <span className="relative z-10 text-center leading-tight">APPLE PLANS</span>
                       <div className="absolute inset-0 bg-amber-400/5 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                     </a>
 
@@ -429,17 +330,17 @@ export default function Home() {
                       href="https://waze.com/ul/hu0jr2ep7v"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 border border-amber-400/50 hover:border-amber-400 
+                      className="inline-flex items-center justify-center gap-2 border border-amber-400/50 hover:border-amber-400 
                         text-amber-300 hover:text-amber-200 
-                        px-3 py-1.5 font-light text-xs tracking-wider
+                        px-4 py-2 font-light text-xs tracking-wider
                         transition-all duration-300 
                         hover:bg-amber-400/10 hover:shadow-lg hover:shadow-amber-400/20
-                        relative overflow-hidden group"
+                        relative overflow-hidden group w-full md:w-32 h-12"
                     >
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                       </svg>
-                      <span className="relative z-10">WAZE</span>
+                      <span className="relative z-10 text-center leading-tight">WAZE</span>
                       <div className="absolute inset-0 bg-amber-400/5 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
                     </a>
                   </div>
@@ -504,7 +405,7 @@ export default function Home() {
                 <div className="grid md:grid-cols-2 gap-8">
                   <div className="border border-amber-400/40 bg-gray-900/30 p-8 hover:border-amber-400/60 transition-all duration-300 hover:bg-gray-900/50 group">
                     <div className="text-center">
-                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center floating-ornament">
+                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center glowing-border">
                         <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.22.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/>
                         </svg>
@@ -518,7 +419,7 @@ export default function Home() {
 
                   <div className="border border-amber-400/40 bg-gray-900/30 p-8 hover:border-amber-400/60 transition-all duration-300 hover:bg-gray-900/50 group">
                     <div className="text-center">
-                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center floating-ornament">
+                      <div className="w-12 h-12 border border-amber-400 mx-auto mb-4 flex items-center justify-center glowing-border">
                         <svg className="w-6 h-6 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M12 11.807A9.002 9.002 0 0 1 10.049 2a9.942 9.942 0 0 0-5.12 2.735c-3.905 3.905-3.905 10.237 0 14.142 3.906 3.906 10.237 3.905 14.143 0a9.946 9.946 0 0 0 2.735-5.119A9.003 9.003 0 0 1 12 11.807z"/>
                         </svg>
@@ -544,7 +445,7 @@ export default function Home() {
 
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center glowing-border">
                         <span className="text-amber-400 text-xl">♪</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">DJs Enflammés</h4>
@@ -552,7 +453,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center glowing-border">
                         <span className="text-amber-400 text-xl">✦</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Bouffe à Gogo</h4>
@@ -560,7 +461,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center glowing-border">
                         <span className="text-amber-400 text-xl">◊</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Bières et Vins</h4>
@@ -568,7 +469,7 @@ export default function Home() {
                     </div>
 
                     <div className="text-center">
-                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center floating-ornament">
+                      <div className="w-16 h-16 border border-amber-400/50 mx-auto mb-3 flex items-center justify-center glowing-border">
                         <span className="text-amber-400 text-xl">✧</span>
                       </div>
                       <h4 className="text-amber-300 font-serif mb-2">Alcools Forts</h4>
@@ -611,7 +512,7 @@ export default function Home() {
             </main>
 
             {/* Action buttons */}
-            <div ref={el => sectionsRef.current[5] = el} className="flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12">
+            <div ref={el => sectionsRef.current[5] = el} className="opacity-0 flex flex-col sm:flex-row justify-center items-center gap-6 mt-16 mb-12">
               <Link href="/reserver" legacyBehavior>
                 <a className="bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 
                   text-black py-4 px-12 font-serif font-medium text-lg tracking-widest
@@ -637,11 +538,11 @@ export default function Home() {
           </div>
 
           {/* Footer avec animation */}
-          <footer ref={footerRef} className="border-t border-amber-400/20 mt-auto p-8 flex gap-6 flex-wrap items-center justify-center transition-all duration-300 relative z-10">
+          <footer className="border-t border-amber-400/20 mt-auto p-8 flex gap-6 flex-wrap items-center justify-center opacity-30 md:opacity-20 hover:opacity-40 transition-all duration-300 relative z-10">
             <div className="flex items-center gap-2 text-slate-400 font-light">
               <span className="footer-text">Site web réalisé par</span>
               <a
-                className="footer-link inline-flex items-center gap-2 hover:underline hover:underline-offset-4 hover:text-amber-300 transition-colors"
+                className="footer-link inline-flex items-center gap-2 hover:underline hover:underline-offset-4 hover:text-amber-300 transition-colors transform"
                 href="https://thbo.ch/"
                 target="_blank"
                 rel="noopener noreferrer"
