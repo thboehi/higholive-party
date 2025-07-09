@@ -389,7 +389,7 @@ export default function Home() {
                   </div>
 
                   <h2 className="text-2xl sm:text-3xl font-serif text-center text-amber-400 mb-8 tracking-wide">
-                    Une Nuit de Folie
+                    30 balais mais zéro sagesse
                   </h2>
                   
                   <p className="text-lg text-slate-200 leading-relaxed text-center font-light">
