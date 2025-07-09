@@ -353,19 +353,26 @@ export default function Home() {
                 </p>
               </div>
 
-              {/* Discrete reservation button */}
+              {/* Discrete scroll invitation */}
               <div className="mt-12">
-                <Link href="/reserver" legacyBehavior>
-                  <a className="inline-block border border-amber-400/50 hover:border-amber-400 
-                    text-amber-300 hover:text-amber-200 
-                    px-8 py-3 font-light tracking-widest text-sm
-                    transition-all duration-300 
-                    hover:bg-amber-400/10 hover:shadow-lg hover:shadow-amber-400/20
-                    relative overflow-hidden group">
-                    <span className="relative z-10">RÉSERVER</span>
-                    <div className="absolute inset-0 bg-amber-400/5 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-                  </a>
-                </Link>
+                <div className="flex flex-col items-center cursor-pointer group" onClick={() => {
+                  const firstSection = sectionsRef.current[0];
+                  if (firstSection) {
+                    firstSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }
+                }}>
+                  <span className="text-amber-300/70 hover:text-amber-200 font-light tracking-widest text-sm mb-3 transition-colors duration-300">
+                    DÉCOUVRIR LE PROGRAMME
+                  </span>
+                  <div className="flex flex-col items-center animate-bounce">
+                    <svg className="w-6 h-6 text-amber-400 group-hover:text-amber-300 transition-colors duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                    <svg className="w-4 h-4 text-amber-400/50 group-hover:text-amber-300/70 transition-colors duration-300 -mt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                    </svg>
+                  </div>
+                </div>
               </div>
             </header>
 
@@ -382,13 +389,12 @@ export default function Home() {
                   </div>
 
                   <h2 className="text-2xl sm:text-3xl font-serif text-center text-amber-400 mb-8 tracking-wide">
-                    Une Célébration Extraordinaire
+                    Une Nuit de Folie
                   </h2>
                   
                   <p className="text-lg text-slate-200 leading-relaxed text-center font-light">
-                    Nous vous invitons à nous rejoindre dans notre demeure montagnarde pour célébrer trois décennies 
-                    d'existence dans un cadre d'exception. Une soirée où l'élégance rencontre la festivité, 
-                    où chaque moment sera gravé dans la mémoire collective.
+                    On t'invite à une nuit de folie, de rires, de shots douteux et de souvenirs flous mais inoubliables.
+                    Ramène ta bonne humeur, ton sens de la fête et oublie la décence à la maison — on s'occupe du reste !
                   </p>
                 </div>
               </section>
