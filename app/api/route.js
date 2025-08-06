@@ -123,13 +123,73 @@ export async function POST(request) {
     // Insérer la réservation dans la base de données
     await db.collection('reservations').insertOne(reservation);
     
-    // Envoyer les données à n8n (de manière asynchrone, ne pas bloquer la réponse)
+    // Envoyer les données à n8n avec gestion robuste des erreurs
     if (n8nEndpoint) {
-      fetch(n8nEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(n8nData),
-      }).catch(err => console.error("Erreur lors de l'envoi à n8n:", err));
+      const sendToN8n = async (retries = 3, delay = 1000) => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+          try {
+            console.log(`Tentative ${attempt}/${retries} d'envoi vers n8n`);
+            
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+            
+            const response = await fetch(n8nEndpoint, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'User-Agent': 'higholive-party-webhook/1.0',
+                'Connection': 'close', // Force fermeture après requête
+                'Cache-Control': 'no-cache'
+              },
+              body: JSON.stringify(n8nData),
+              signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok) {
+              console.log(`✅ Données envoyées à n8n avec succès (tentative ${attempt})`);
+              return; // Succès, sortir de la boucle
+            } else {
+              throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+          } catch (err) {
+            console.error(`❌ Tentative ${attempt}/${retries} échouée:`, {
+              message: err.message,
+              code: err.code,
+              name: err.name
+            });
+            
+            // Si c'est la dernière tentative, abandonner
+            if (attempt === retries) {
+              console.error("🔥 Échec définitif de l'envoi à n8n après", retries, "tentatives");
+              try {
+                await db.collection('failed_webhooks').insertOne({
+                  reservationId: n8nData.reservationId,
+                  data: n8nData,
+                  error: err.message,
+                  createdAt: new Date().toISOString(),
+                  retries: 0
+                });
+                console.log("Webhook sauvegardé pour retry manuel");
+              } catch (saveErr) {
+                console.error("Impossible de sauvegarder le webhook échoué:", saveErr);
+              }
+            }
+            
+            // Attendre avant le prochain essai (délai progressif)
+            const waitTime = delay * attempt;
+            console.log(`⏳ Attente de ${waitTime}ms avant la prochaine tentative`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+          }
+        }
+      };
+      
+      // Exécuter de manière asynchrone sans bloquer la réponse
+      sendToN8n().catch(err => {
+        console.error("Erreur finale dans sendToN8n:", err);
+      });
     }
     
     // Renvoyer une réponse de succès avec l'ID de réservation
