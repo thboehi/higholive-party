@@ -40,6 +40,7 @@ export default function AdminPage() {
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState(null);
   const [expandedReservations, setExpandedReservations] = useState(new Set());
+  const [copySuccess, setCopySuccess] = useState('');
 
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -118,6 +119,27 @@ export default function AdminPage() {
       setReservations([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Fonction pour copier le lien de paiement
+  const copyPaymentLink = async (reservationId) => {
+    const paymentLink = `https://party.higholive.ch/pay?reservationId=${reservationId}`;
+    try {
+      await navigator.clipboard.writeText(paymentLink);
+      setCopySuccess(reservationId); // Marquer cette réservation comme copiée
+      setTimeout(() => setCopySuccess(''), 2000); // Effacer après 2 secondes
+    } catch (err) {
+      console.error('Erreur lors de la copie:', err);
+      // Fallback pour les navigateurs plus anciens
+      const textArea = document.createElement('textarea');
+      textArea.value = paymentLink;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopySuccess(reservationId);
+      setTimeout(() => setCopySuccess(''), 2000);
     }
   };
 
@@ -444,7 +466,30 @@ export default function AdminPage() {
                     <h3 className="text-xl font-bold text-purple-400">
                         {reservation.mainContact.firstName} {reservation.mainContact.lastName}
                     </h3>
-                    <p className="text-sm text-gray-400">ID: {reservation.reservationId}</p>
+                    <div className="flex items-center gap-2">
+                  <p className="text-sm text-gray-400">ID: {reservation.reservationId}</p>
+                  <button
+                    onClick={() => copyPaymentLink(reservation.reservationId)}
+                    className="text-xs text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-1 cursor-pointer"
+                    title="Copier le lien de paiement"
+                  >
+                    {copySuccess === reservation.reservationId ? (
+                      <>
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                        Copié!
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copier lien
+                      </>
+                    )}
+                  </button>
+                </div>
                 </div>
                 <div className="mt-4 md:mt-0 md:text-right">
                     <p className="text-lg">Statut: <span className={getStatusStyle(reservation.status)}>{reservation.status.toUpperCase()}</span></p>
