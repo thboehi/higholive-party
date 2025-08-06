@@ -176,10 +176,6 @@ export default function Home() {
   // Animation pour la confirmation
   const showSuccessAnimation = () => {
     setIsReservationConfirmed(true);
-    gsap.fromTo(successRef.current,
-      { opacity: 0, y: 100, scale: 0.8 },
-      { opacity: 1, y: 0, scale: 1, duration: 1, ease: "back.out(1.7)" }
-    );
   };
 
   const handleMainContactChange = (e) => {
@@ -666,7 +662,7 @@ EPD`;
         {/* Main Content */}
         <div className="relative z-10 max-w-4xl mx-auto px-6 pb-32">
           {isReservationConfirmed ? (
-            <div ref={successRef} className="opacity-0">
+            <div ref={successRef} className="">
               <div className="border border-amber-400/40 bg-gradient-to-br from-gray-900/60 to-black/60 backdrop-blur-sm rounded-none p-12 shadow-2xl text-center">
                 <div className="mb-8">
                   <div className="w-24 h-24 border-2 border-amber-400 mx-auto mb-6 flex items-center justify-center rounded-full">
