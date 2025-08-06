@@ -673,30 +673,30 @@ EPD`;
                 </div>
                 
                 <h2 className="text-3xl lg:text-4xl font-serif text-amber-400 mb-8 tracking-wide">
-                  Merci pour votre réservation !
+                  Merci pour ta réservation !
                 </h2>
                 
                 <div className="space-y-6 mb-10">
                   <p className="text-lg text-slate-200 font-light leading-relaxed">
-                    Votre demande a bien été enregistrée avec élégance.
+                    Ta demande a bien été enregistrée.
                   </p>
                   <p className="text-lg text-slate-200 font-light leading-relaxed">
-                    Veuillez vérifier votre boîte de réception (et votre dossier de courriers indésirables) 
-                    pour l'e-mail de confirmation orné de nos meilleures attentions.
+                    Penses à vérifier pour ta boite mail un message de confirmation dans les prochaines minutes.
+                    Si tu ne reçois pas de mail (ça arrive souvent..), pas d'inquiétude, clique sur le lien dessous pour voir si tout est bon.
                   </p>
                   
                   {confirmedReservationId && (
                     <div className="border border-amber-400/30 bg-black/30 p-6 my-8">
                       <Link href={`https://party.higholive.ch/pay?reservationId=${confirmedReservationId}`} legacyBehavior>
                         <a className="text-amber-400 hover:text-amber-300 underline font-light tracking-wide transition-colors">
-                          → Consulter l'état de votre réservation
+                          Voir l'état de ma réservation
                         </a>
                       </Link>
                     </div>
                   )}
                   
                   <p className="text-sm text-slate-500 font-light italic">
-                    (N'oubliez pas de vérifier vos courriers indésirables)
+                    (Penses à vérifier tes spams si tu ne vois pas le mail)
                   </p>
                 </div>
 
